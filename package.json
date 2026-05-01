@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "npx tsx scripts/seed.ts"
+    "seed": "npx tsx --env-file=.env.local scripts/seed.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
