@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { generateDraft } from "@/app/actions/generate-draft";
+import TagRow from "./TagRow";
 import type { DraftSummary } from "./HistorySidebar";
 
 type PostFormat = "story_arc" | "hot_take" | "short_insight" | "essay";
@@ -114,7 +115,24 @@ export default function DraftPanel({
               {draft}
             </p>
           </div>
-          {/* Plan 03: TagRow rendered here when postId is set (tag row added by plan 03) */}
+          {/* Inline tag row — 5 dropdowns appear as soon as draft is generated (TAGS-05) */}
+          {postId && (
+            <TagRow
+              postId={postId}
+              topicAreas={topicAreas}
+              initialTags={
+                loadedDraft
+                  ? {
+                      hookType: loadedDraft.hookType,
+                      narrativeStructure: loadedDraft.narrativeStructure,
+                      topicId: loadedDraft.topicId,
+                      scheduledTime: loadedDraft.scheduledTime,
+                      status: loadedDraft.status,
+                    }
+                  : undefined
+              }
+            />
+          )}
         </div>
       )}
     </div>
