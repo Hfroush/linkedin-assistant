@@ -45,8 +45,13 @@ Plans:
   2. Every draft is immediately taggable inline: hook type, narrative structure, topic area, and posting time are set during the draft flow without a separate step or modal
   3. Every generated draft is saved to draft history with its input prompt and timestamp — user can scroll back and revisit past drafts
   4. User can copy any finalised draft to clipboard with one click
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 4 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Seed 7 topic areas into Turso + getDrafts/getTopicAreas query helpers
+- [ ] 02-02-PLAN.md — Home page draft UI: textarea + format picker + generateDraft Server Action (cached Claude call + DB insert)
+- [ ] 02-03-PLAN.md — Inline tag row: 5 dropdowns + updateTags Server Action + clipboard copy (Wave 2)
+- [ ] 02-04-PLAN.md — Draft history sidebar: past drafts list + click-to-load into main draft area (Wave 2)
 
 ### Phase 3: Content Discovery
 **Goal**: The app tells Houtan what to write about today and surfaces real-world articles and sources as inspiration — he never opens to a blank page
@@ -90,7 +95,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete | 2026-05-04 |
-| 2. Core Drafting | 0/TBD | Not started | - |
+| 2. Core Drafting | 0/4 | Not started | - |
 | 3. Content Discovery | 0/TBD | Not started | - |
 | 4. Performance Tracking | 0/TBD | Not started | - |
 | 5. Metrics Automation | 0/TBD | Not started | - |
