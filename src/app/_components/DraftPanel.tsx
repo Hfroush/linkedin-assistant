@@ -1,11 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { generateDraft } from "@/app/actions/generate-draft";
+import type { DraftSummary } from "./HistorySidebar";
 
 type PostFormat = "story_arc" | "hot_take" | "short_insight" | "essay";
 
-export default function DraftPanel() {
+interface DraftPanelProps {
+  topicAreas?: Array<{ id: number; name: string }>;
+  loadedDraft?: DraftSummary | null;
+}
+
+export default function DraftPanel({
+  topicAreas = [],
+  loadedDraft,
+}: DraftPanelProps) {
   const [roughIdea, setRoughIdea] = useState("");
   const [format, setFormat] = useState<PostFormat>("short_insight");
   const [draft, setDraft] = useState<string | null>(null);
@@ -13,6 +22,15 @@ export default function DraftPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // D-08: clicking a past draft in the sidebar loads it into the main draft area
+  useEffect(() => {
+    if (!loadedDraft) return;
+    setDraft(loadedDraft.draftText ?? "");
+    setPostId(loadedDraft.id);
+    setRoughIdea(loadedDraft.roughIdea ?? "");
+    setError(null);
+  }, [loadedDraft]);
 
   async function handleGenerate() {
     setIsLoading(true);
@@ -96,6 +114,7 @@ export default function DraftPanel() {
               {draft}
             </p>
           </div>
+          {/* Plan 03: TagRow rendered here when postId is set (tag row added by plan 03) */}
         </div>
       )}
     </div>
