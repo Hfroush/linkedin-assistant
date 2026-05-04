@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "sh -c 'set -a && . .env.local && set +a && npx tsx scripts/seed.ts'"
+    "seed": "sh -c 'set -a && . .env.local && set +a && npx tsx scripts/seed.ts'",
+    "seed-topics": "sh -c 'set -a && . .env.local && set +a && npx tsx scripts/seed-topics.ts'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
