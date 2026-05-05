@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { generateDraft } from "@/app/actions/generate-draft";
 import TagRow from "./TagRow";
 import type { DraftSummary } from "./HistorySidebar";
@@ -32,6 +33,16 @@ export default function DraftPanel({
     setRoughIdea(loadedDraft.roughIdea ?? "");
     setError(null);
   }, [loadedDraft]);
+
+  // Phase 3: pre-fill from ?roughIdea= query param (angle button or article card click-to-draft)
+  // D-09: no auto-generate — user sees pre-filled textarea and presses Generate manually
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const seed = searchParams.get("roughIdea");
+    if (seed && !loadedDraft) {
+      setRoughIdea(decodeURIComponent(seed));
+    }
+  }, []); // intentional empty dep array — run once on mount only
 
   async function handleGenerate() {
     setIsLoading(true);
