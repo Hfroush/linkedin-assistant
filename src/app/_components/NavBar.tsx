@@ -25,6 +25,14 @@ export default function NavBar() {
         >
           Discover
         </Link>
+        <Link
+          href="/stats"
+          className={`text-sm font-semibold text-gray-900${
+            pathname === "/stats" ? " border-b-2 border-blue-600 pb-1" : ""
+          }`}
+        >
+          Stats
+        </Link>
       </div>
     </nav>
   );
