@@ -26,6 +26,11 @@ export async function getDrafts(): Promise<
     | "topicId"
     | "scheduledTime"
     | "status"
+    | "reactions"
+    | "comments"
+    | "reposts"
+    | "impressions"
+    | "engagementRate"
   >[]
 > {
   return db
@@ -39,6 +44,11 @@ export async function getDrafts(): Promise<
       topicId: posts.topicId,
       scheduledTime: posts.scheduledTime,
       status: posts.status,
+      reactions: posts.reactions,
+      comments: posts.comments,
+      reposts: posts.reposts,
+      impressions: posts.impressions,
+      engagementRate: posts.engagementRate,
     })
     .from(posts)
     .orderBy(desc(posts.createdAt));
