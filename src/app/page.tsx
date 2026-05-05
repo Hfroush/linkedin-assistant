@@ -1,7 +1,9 @@
-import { getDrafts, getTopicAreas, getRecentPostTopics } from "@/db/queries";
+import { getDrafts, getTopicAreas, getRecentPostTopics, getLatestDigest, getPublishedPostCount } from "@/db/queries";
 import { generateAngles } from "@/app/actions/generate-angles";
+import { generateDigest } from "@/app/actions/generate-digest";
 import HomeClient from "./_components/HomeClient";
 import TopicPromptCard from "./_components/TopicPromptCard";
+import { WeeklyDigestCard } from "./_components/WeeklyDigestCard";
 import type { TopicArea } from "@/db/schema";
 
 // Weighted random topic selection — prefers topics not in recentTopicIds.
@@ -19,10 +21,12 @@ function selectWeightedTopic(
 }
 
 export default async function Home() {
-  const [drafts, topicAreas, recentTopicIds] = await Promise.all([
+  const [drafts, topicAreas, recentTopicIds, latestDigest, publishedPostCount] = await Promise.all([
     getDrafts(),
     getTopicAreas(),
     getRecentPostTopics(14),
+    getLatestDigest(),
+    getPublishedPostCount(),
   ]);
 
   // Select topic — weighted random avoiding recent (D-04)
@@ -39,10 +43,47 @@ export default async function Home() {
     }
   }
 
+  // Digest staleness check and conditional regeneration (D-07: auto-regenerate if > 7 days old)
+  const DIGEST_TTL_DAYS = 7;
+  const DIGEST_MIN_POSTS = 3;
+
+  let digestText: string | null = null;
+
+  if (publishedPostCount >= DIGEST_MIN_POSTS) {
+    try {
+      if (latestDigest == null) {
+        // No digest yet — generate one
+        digestText = await generateDigest();
+      } else {
+        // Check if the stored digest is stale
+        const digestAge = latestDigest.createdAt
+          ? (Date.now() - new Date(latestDigest.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+          : Infinity;
+        if (digestAge > DIGEST_TTL_DAYS) {
+          digestText = await generateDigest();
+        } else {
+          // Use stored digest
+          try {
+            const parsed = JSON.parse(latestDigest.digestJson ?? "{}") as { text?: string };
+            digestText = parsed.text ?? null;
+          } catch {
+            digestText = null;
+          }
+        }
+      }
+    } catch {
+      // silent fail — Claude API failure returns null digestText; page still renders
+      digestText = null;
+    }
+  }
+
   return (
     <main className="min-h-screen p-6">
       {topic && (
         <TopicPromptCard topicName={topic.name} angles={angles} />
+      )}
+      {digestText != null && (
+        <WeeklyDigestCard digestText={digestText} />
       )}
       <HomeClient drafts={drafts} topicAreas={topicAreas} />
     </main>
