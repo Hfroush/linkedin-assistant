@@ -126,6 +126,7 @@ export async function getPublishedPostsWithMetrics() {
       narrativeStructure: posts.narrativeStructure,
       topicId: posts.topicId,
       scheduledTime: posts.scheduledTime,
+      publishedAt: posts.publishedAt,
       reactions: posts.reactions,
       comments: posts.comments,
       reposts: posts.reposts,
