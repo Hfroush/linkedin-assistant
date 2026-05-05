@@ -1,9 +1,10 @@
-import { desc, gte, eq, gt, isNull, or } from "drizzle-orm";
+import { desc, gte, eq, gt, isNull, or, sql, and, isNotNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   posts,
   topicAreas,
   trendingItems,
+  weeklyDigests,
   type Post,
   type TopicArea,
   type TrendingItem,
@@ -97,4 +98,154 @@ export async function getTrendingItems(): Promise<
     )
     .orderBy(desc(trendingItems.fetchedAt));
   return rows;
+}
+
+/**
+ * Returns all published posts with full metric columns.
+ * NOTE: "published" here means status = 'published' — not necessarily that impressions have
+ * been entered. Use getTagDimensionStats() for aggregations that require real metrics data
+ * (it filters to impressions IS NOT NULL internally).
+ */
+export async function getPublishedPostsWithMetrics() {
+  return db
+    .select({
+      id: posts.id,
+      roughIdea: posts.roughIdea,
+      draftText: posts.draftText,
+      hookType: posts.hookType,
+      narrativeStructure: posts.narrativeStructure,
+      topicId: posts.topicId,
+      scheduledTime: posts.scheduledTime,
+      reactions: posts.reactions,
+      comments: posts.comments,
+      reposts: posts.reposts,
+      impressions: posts.impressions,
+      engagementRate: posts.engagementRate,
+      metricsPulledAt: posts.metricsPulledAt,
+      status: posts.status,
+      createdAt: posts.createdAt,
+    })
+    .from(posts)
+    .where(eq(posts.status, "published"))
+    .orderBy(desc(posts.createdAt));
+}
+
+/**
+ * Returns the total count of published posts (status = 'published').
+ * Used for digest eligibility checks (D-06: show digest only after 3+ published posts).
+ * Note: this count includes posts that may not yet have impressions entered.
+ * For metrics-ready posts specifically, see getTagDimensionStats().totalPostsWithMetrics.
+ */
+export async function getPublishedPostCount() {
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(posts)
+    .where(eq(posts.status, "published"));
+  return result[0]?.count ?? 0;
+}
+
+/**
+ * Computes best performer per tag dimension using JavaScript-side aggregation.
+ * Only posts with impressions AND engagementRate entered are included — sparse rows
+ * (no impressions) are excluded so they don't dilute or distort averages.
+ */
+export async function getTagDimensionStats() {
+  // Load all published posts that have impressions entered (exclude sparse rows)
+  const publishedPosts = await db
+    .select({
+      hookType: posts.hookType,
+      narrativeStructure: posts.narrativeStructure,
+      topicId: posts.topicId,
+      scheduledTime: posts.scheduledTime,
+      engagementRate: posts.engagementRate,
+    })
+    .from(posts)
+    .where(
+      and(
+        eq(posts.status, "published"),
+        isNotNull(posts.impressions),
+        isNotNull(posts.engagementRate)
+      )
+    );
+
+  // Helper: group by string key and average engagementRate
+  function bestInDimension<T extends string | number | null>(
+    rows: typeof publishedPosts,
+    key: keyof typeof publishedPosts[0]
+  ): { value: T; avgRate: number } | null {
+    const groups: Record<string, { sum: number; count: number }> = {};
+    for (const row of rows) {
+      const val = row[key];
+      if (val == null || row.engagementRate == null) continue;
+      const k = String(val);
+      if (!groups[k]) groups[k] = { sum: 0, count: 0 };
+      groups[k].sum += row.engagementRate;
+      groups[k].count += 1;
+    }
+    let bestKey: string | null = null;
+    let bestAvg = -1;
+    for (const [k, { sum, count }] of Object.entries(groups)) {
+      const avg = sum / count;
+      if (avg > bestAvg) { bestAvg = avg; bestKey = k; }
+    }
+    if (bestKey == null) return null;
+    return { value: bestKey as T, avgRate: bestAvg };
+  }
+
+  // Posting hour: derive from scheduledTime timestamp
+  const rowsWithHour = publishedPosts
+    .filter((r) => r.scheduledTime != null && r.engagementRate != null)
+    .map((r) => ({
+      ...r,
+      postingHour: new Date(r.scheduledTime!).getUTCHours(),
+    }));
+
+  function bestHour(): { value: number; avgRate: number } | null {
+    const groups: Record<number, { sum: number; count: number }> = {};
+    for (const row of rowsWithHour) {
+      const h = row.postingHour;
+      if (!groups[h]) groups[h] = { sum: 0, count: 0 };
+      groups[h].sum += row.engagementRate!;
+      groups[h].count += 1;
+    }
+    let bestH: number | null = null;
+    let bestAvg = -1;
+    for (const [h, { sum, count }] of Object.entries(groups)) {
+      const avg = sum / count;
+      if (avg > bestAvg) { bestAvg = avg; bestH = Number(h); }
+    }
+    if (bestH == null) return null;
+    return { value: bestH, avgRate: bestAvg };
+  }
+
+  // Overall average engagement rate
+  const ratesWithValues = publishedPosts
+    .map((r) => r.engagementRate)
+    .filter((r): r is number => r != null);
+  const overallAvgEngagementRate =
+    ratesWithValues.length > 0
+      ? ratesWithValues.reduce((a, b) => a + b, 0) / ratesWithValues.length
+      : null;
+
+  return {
+    bestHookType: bestInDimension<string>(publishedPosts, "hookType"),
+    bestNarrativeStructure: bestInDimension<string>(publishedPosts, "narrativeStructure"),
+    bestTopicId: bestInDimension<number>(publishedPosts, "topicId"),
+    bestPostingHour: bestHour(),
+    overallAvgEngagementRate,
+    totalPostsWithMetrics: ratesWithValues.length,
+  };
+}
+
+/**
+ * Returns the most recently created weeklyDigests row, or null if none exist.
+ * Used by home page.tsx to determine whether to show or regenerate the digest card (D-06, D-07).
+ */
+export async function getLatestDigest() {
+  const result = await db
+    .select()
+    .from(weeklyDigests)
+    .orderBy(desc(weeklyDigests.createdAt))
+    .limit(1);
+  return result[0] ?? null;
 }
