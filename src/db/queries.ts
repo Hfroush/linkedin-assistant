@@ -1,4 +1,4 @@
-import { desc, gte, eq } from "drizzle-orm";
+import { desc, gte, eq, gt, isNull, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   posts,
@@ -73,6 +73,7 @@ export async function getRecentPostTopics(windowDays = 14): Promise<number[]> {
 export async function getTrendingItems(): Promise<
   (TrendingItem & { topicName: string | null })[]
 > {
+  const now = new Date();
   const rows = await db
     .select({
       id: trendingItems.id,
@@ -88,6 +89,12 @@ export async function getTrendingItems(): Promise<
     })
     .from(trendingItems)
     .leftJoin(topicAreas, eq(trendingItems.topicId, topicAreas.id))
+    .where(
+      or(
+        isNull(trendingItems.expiresAt), // bookmarks never expire
+        gt(trendingItems.expiresAt, now), // RSS items still within TTL
+      )
+    )
     .orderBy(desc(trendingItems.fetchedAt));
   return rows;
 }

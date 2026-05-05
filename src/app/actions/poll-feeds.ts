@@ -19,64 +19,63 @@ const TTL_MS = 4 * 60 * 60 * 1000; // 4-hour TTL (RESEARCH.md Assumption A1)
  */
 export async function pollFeedsIfStale(): Promise<void> {
   const now = new Date();
+  const expiresAt = new Date(now.getTime() + TTL_MS);
 
-  for (const topicId of TOPIC_IDS) {
-    const config = FEEDS[topicId];
-    if (!config) continue;
+  // Fan out topic polling in parallel — reduces worst-case latency from 56s → 8s (CR-03)
+  await Promise.allSettled(
+    TOPIC_IDS.map(async (topicId) => {
+      const config = FEEDS[topicId];
+      if (!config) return;
 
-    // DB-TTL gate: check if any non-expired item exists for this topic
-    const validItem = await db
-      .select({ id: trendingItems.id })
-      .from(trendingItems)
-      .where(
-        and(
-          eq(trendingItems.topicId, topicId),
-          or(
-            isNull(trendingItems.expiresAt),       // bookmarks never expire
-            gt(trendingItems.expiresAt, now),       // RSS items still fresh
+      // DB-TTL gate: check if any non-expired item exists for this topic
+      const validItem = await db
+        .select({ id: trendingItems.id })
+        .from(trendingItems)
+        .where(
+          and(
+            eq(trendingItems.topicId, topicId),
+            or(
+              isNull(trendingItems.expiresAt), // bookmarks never expire
+              gt(trendingItems.expiresAt, now), // RSS items still fresh
+            )
           )
         )
-      )
-      .get();
+        .get();
 
-    if (validItem) continue; // fresh data exists — skip RSS fetch for this topic
+      if (validItem) return; // fresh data exists — skip RSS fetch for this topic
 
-    // Stale or empty: fetch all feeds for this topic in parallel
-    const results = await Promise.allSettled(
-      config.urls.map((url) => parser.parseURL(url))
-    );
+      // Stale or empty: fetch all feeds for this topic in parallel
+      const results = await Promise.allSettled(
+        config.urls.map((url) => parser.parseURL(url))
+      );
 
-    const expiresAt = new Date(now.getTime() + TTL_MS);
+      for (const result of results) {
+        if (result.status === "rejected") {
+          console.warn(`[poll-feeds] Feed fetch failed for topic ${topicId}:`, result.reason);
+          continue;
+        }
 
-    for (const result of results) {
-      if (result.status === "rejected") {
-        // Dead feed — log but continue (do not crash the poll)
-        console.warn(`[poll-feeds] Feed fetch failed for topic ${topicId}:`, result.reason);
-        continue;
-      }
-
-      for (const item of result.value.items.slice(0, 20)) {
-        if (!item.link) continue;
-
-        const contentHash = createHash("sha256")
-          .update(`${item.link}|${item.title ?? ""}`)
-          .digest("hex");
-
-        await db
-          .insert(trendingItems)
-          .values({
+        const values = result.value.items
+          .slice(0, 20)
+          .filter((item) => !!item.link)
+          .map((item) => ({
             id: crypto.randomUUID(),
-            sourceType: "rss",
-            sourceUrl: item.link,
+            sourceType: "rss" as const,
+            sourceUrl: item.link!,
             title: item.title ?? null,
             summary: item.contentSnippet ?? item.content ?? null,
             topicId,
-            contentHash,
+            contentHash: createHash("sha256")
+              .update(`${item.link}|${item.title ?? ""}`)
+              .digest("hex"),
             fetchedAt: now,
             expiresAt,
-          })
-          .onConflictDoNothing(); // uniqueIndex on contentHash blocks duplicates (Plan 01)
+          }));
+
+        if (values.length > 0) {
+          await db.insert(trendingItems).values(values).onConflictDoNothing();
+        }
       }
-    }
-  }
+    })
+  );
 }

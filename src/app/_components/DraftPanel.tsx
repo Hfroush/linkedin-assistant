@@ -40,7 +40,7 @@ export default function DraftPanel({
   useEffect(() => {
     const seed = searchParams.get("roughIdea");
     if (seed && !loadedDraft) {
-      setRoughIdea(decodeURIComponent(seed));
+      setRoughIdea(seed); // searchParams.get() already URL-decodes the value
     }
   }, []); // intentional empty dep array — run once on mount only
 
