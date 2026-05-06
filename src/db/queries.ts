@@ -137,6 +137,7 @@ export async function getPublishedPostsWithMetrics() {
       impressions: posts.impressions,
       engagementRate: posts.engagementRate,
       metricsPulledAt: posts.metricsPulledAt,
+      linkedinPostUrl: posts.linkedinPostUrl,
       status: posts.status,
       createdAt: posts.createdAt,
     })
