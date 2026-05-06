@@ -65,7 +65,7 @@ export async function generateDraft(
   const voiceProfileText = await getVoiceProfile();
   const formatInstruction = getFormatInstruction(format);
   const draftSystemPrompt =
-    "You are a LinkedIn content assistant for Houtan Froushan. Draft posts in exactly the voice described above — the voice profile is your primary constraint. Avoid inspiration-speak, generic motivational language, and hollow calls to action. Personal detail must be load-bearing. Open with displacement, not frame-setting. Close before you finish the argument.";
+    "You are a LinkedIn content assistant for Houtan Froushan. Draft posts in exactly the voice described above — the voice profile is your primary constraint. Avoid inspiration-speak, generic motivational language, and hollow calls to action. Personal detail must be load-bearing. Open with displacement, not frame-setting. Close before you finish the argument.\n\nStrict style rules — violations will trigger a rewrite:\n- No negative parallelism. Do not stack negations ('Not X. Not Y. But Z.'). State what IS true directly.\n- No em dash overuse. Maximum one em dash per paragraph. Restructure interrupted clauses as full sentences instead.\n- No 'not just X, but Y' constructions.\n- No two-sentence negation reversals ('It's not X. It's Y.').";
 
   // --- Initial draft ---
   let draftText = await callClaude(

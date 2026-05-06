@@ -148,6 +148,26 @@ const DEFAULT_RULES: PhraseRule[] = [
     suggestion:
       "State the positive claim directly in a single sentence without the preceding negation.",
   },
+  {
+    name: "negative_parallelism",
+    pattern:
+      "\\bnot\\b[^.!?\\n]{3,80}[.!?][\\s\\n]+not\\b|\\bnot\\b[^,.!?\\n]{3,60},\\s*not\\b[^,.!?\\n]{3,60},",
+    severity: 35,
+    explanation:
+      "Uses negative parallelism ('Not X. Not Y.' or 'Not X, not Y,') — a GenAI rhetorical habit that stacks negations instead of making a direct claim.",
+    suggestion:
+      "Cut the negations entirely. State what IS true in plain, positive terms.",
+  },
+  {
+    name: "em_dash_overuse",
+    pattern:
+      "(?:—[^—\\n]*){2}—",
+    severity: 25,
+    explanation:
+      "Uses three or more em dashes in close proximity — a common AI writing tic that fragments sentences artificially.",
+    suggestion:
+      "Limit em dashes to one per paragraph. Rewrite interrupted clauses as complete sentences.",
+  },
 ];
 
 // ---------------------------------------------------------------------------
