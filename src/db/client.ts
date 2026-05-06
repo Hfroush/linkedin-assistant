@@ -1,27 +1,16 @@
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
-const dbUrl = process.env["TURSO_DATABASE_URL"];
-const dbToken = process.env["TURSO_AUTH_TOKEN"];
+const databaseUrl = process.env["DATABASE_URL"];
 
-if (!dbUrl) {
+if (!databaseUrl) {
   throw new Error(
-    "TURSO_DATABASE_URL environment variable is not set. " +
-      "Copy .env.local.example to .env.local and fill in your Turso database URL."
+    "DATABASE_URL environment variable is not set. " +
+      "Add your Neon connection string to .env.local."
   );
 }
 
-if (!dbToken) {
-  throw new Error(
-    "TURSO_AUTH_TOKEN environment variable is not set. " +
-      "Copy .env.local.example to .env.local and fill in your Turso auth token."
-  );
-}
+const sql = neon(databaseUrl);
 
-const client = createClient({
-  url: dbUrl,
-  authToken: dbToken,
-});
-
-export const db = drizzle(client, { schema });
+export const db = drizzle(sql, { schema });

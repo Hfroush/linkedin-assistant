@@ -28,7 +28,7 @@ export async function pollFeedsIfStale(): Promise<void> {
       if (!config) return;
 
       // DB-TTL gate: check if any non-expired item exists for this topic
-      const validItem = await db
+      const [validItem] = await db
         .select({ id: trendingItems.id })
         .from(trendingItems)
         .where(
@@ -40,7 +40,7 @@ export async function pollFeedsIfStale(): Promise<void> {
             )
           )
         )
-        .get();
+        .limit(1);
 
       if (validItem) return; // fresh data exists — skip RSS fetch for this topic
 

@@ -13,8 +13,8 @@ Five phases deliver the complete tool in dependency order. Phase 1 builds the da
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Database schema, DOCX parsing, voice profile stored and ready for injection *(Completed: 2026-05-04)*
-- [ ] **Phase 2: Core Drafting** - LLM drafting in Houtan's voice with 5-dimension tagging and clipboard publishing
-- [ ] **Phase 3: Content Discovery** - RSS feed polling, topic prompt engine, inspiration feed, bookmarks
+- [x] **Phase 2: Core Drafting** - LLM drafting in Houtan's voice with 5-dimension tagging and clipboard publishing *(Completed: 2026-05-04)*
+- [x] **Phase 3: Content Discovery** - RSS feed polling, topic prompt engine, inspiration feed, bookmarks *(Completed: 2026-05-05)*
 - [ ] **Phase 4: Performance Tracking** - Manual engagement entry, per-post dashboard, tag analytics, weekly digest
 - [ ] **Phase 5: Metrics Automation** - LinkedIn OAuth metrics pull (conditional on scope approval)
 
@@ -48,10 +48,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Seed 7 topic areas into Turso + getDrafts/getTopicAreas query helpers
-- [ ] 02-02-PLAN.md — Home page draft UI: textarea + format picker + generateDraft Server Action (cached Claude call + DB insert)
-- [ ] 02-03-PLAN.md — Inline tag row: 5 dropdowns + updateTags Server Action + clipboard copy (Wave 2)
-- [ ] 02-04-PLAN.md — Draft history sidebar: past drafts list + click-to-load into main draft area (Wave 2)
+- [x] 02-01-PLAN.md — Seed 7 topic areas into Turso + getDrafts/getTopicAreas query helpers
+- [x] 02-02-PLAN.md — Home page draft UI: textarea + format picker + generateDraft Server Action (cached Claude call + DB insert)
+- [x] 02-03-PLAN.md — Inline tag row: 5 dropdowns + updateTags Server Action + clipboard copy (Wave 2)
+- [x] 02-04-PLAN.md — Draft history sidebar: past drafts list + click-to-load into main draft area (Wave 2)
 
 ### Phase 3: Content Discovery
 **Goal**: The app tells Houtan what to write about today and surfaces real-world articles and sources as inspiration — he never opens to a blank page
@@ -62,8 +62,13 @@ Plans:
   2. User can browse an inspiration feed of articles and sources filtered to the 7 topic areas, sourced from RSS, Google News RSS, and Substack/Ghost feeds
   3. User can click any discovery item and immediately start a draft pre-seeded with that article as context
   4. User can save any URL as a bookmark; saved bookmarks appear in the inspiration feed as draft prompts
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 4 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Schema migration (uniqueIndex on contentHash, sourceUrl/sourceTitle on posts) + npm install rss-parser + src/lib/feeds.ts static config (Wave 1)
+- [ ] 03-02-PLAN.md — poll-feeds.ts Server Action (DB-TTL RSS polling) + generate-angles.ts Server Action (Claude angle generation) + query helpers (Wave 2)
+- [ ] 03-03-PLAN.md — TopicPromptCard.tsx + page.tsx topic prompt wiring + DraftPanel useSearchParams pre-fill + HomeClient Suspense boundary (Wave 3)
+- [ ] 03-04-PLAN.md — NavBar.tsx + layout.tsx + /discover page + ArticleCard/ArticleFeed/BookmarkForm + save-bookmark Server Action (Wave 3, parallel with 03-03)
 
 ### Phase 4: Performance Tracking
 **Goal**: Houtan can see how each post performed, understand which tag combinations work best, and receive a weekly digest — the feedback loop has observable signal
@@ -75,8 +80,13 @@ Plans:
   3. User can see performance broken down by tag dimension: best hook types, best narrative structures, top-performing topic areas, and optimal posting times
   4. The app generates a weekly digest identifying what performed above average, what underperformed, and which tag combinations are trending up
   5. The app displays a re-auth reminder before OAuth token expiry (60-day limit) so that future metrics automation does not silently break
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 4 plans
+
+Plans:
+- [x] 04-01-PLAN.md — Query helpers (getPublishedPostsWithMetrics, getTagDimensionStats, getLatestDigest, getPublishedPostCount) + saveMetrics Server Action (Wave 1)
+- [x] 04-02-PLAN.md — HistorySidebar metrics row: inline 4-input metrics entry + live engagement rate display (Wave 2)
+- [x] 04-03-PLAN.md — generate-digest Server Action (Claude cached call) + WeeklyDigestCard + home page digest wiring (Wave 2)
+- [ ] 04-04-PLAN.md — /stats route (aggregate summary cards + per-post table) + NavBar Stats link + ReauthBanner placeholder (Wave 3)
 
 ### Phase 5: Metrics Automation
 **Goal**: If LinkedIn approves the `r_member_social` scope, engagement data is pulled automatically — manual entry becomes optional rather than required
@@ -95,7 +105,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete | 2026-05-04 |
-| 2. Core Drafting | 0/4 | Not started | - |
-| 3. Content Discovery | 0/TBD | Not started | - |
-| 4. Performance Tracking | 0/TBD | Not started | - |
+| 2. Core Drafting | 4/4 | Complete | 2026-05-04 |
+| 3. Content Discovery | 4/4 | Complete | 2026-05-05 |
+| 4. Performance Tracking | 4/4 | Complete | 2026-05-05 |
 | 5. Metrics Automation | 0/TBD | Not started | - |

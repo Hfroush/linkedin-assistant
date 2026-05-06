@@ -2,7 +2,6 @@ import { getDrafts, getTopicAreas, getRecentPostTopics, getLatestDigest, getPubl
 import { generateAngles } from "@/app/actions/generate-angles";
 import { generateDigest } from "@/app/actions/generate-digest";
 import HomeClient from "./_components/HomeClient";
-import TopicPromptCard from "./_components/TopicPromptCard";
 import { WeeklyDigestCard } from "./_components/WeeklyDigestCard";
 import type { TopicArea } from "@/db/schema";
 
@@ -22,11 +21,11 @@ function selectWeightedTopic(
 
 export default async function Home() {
   const [drafts, topicAreas, recentTopicIds, latestDigest, publishedPostCount] = await Promise.all([
-    getDrafts(),
-    getTopicAreas(),
-    getRecentPostTopics(14),
-    getLatestDigest(),
-    getPublishedPostCount(),
+    getDrafts().catch(() => [] as Awaited<ReturnType<typeof getDrafts>>),
+    getTopicAreas().catch(() => [] as Awaited<ReturnType<typeof getTopicAreas>>),
+    getRecentPostTopics(14).catch(() => [] as number[]),
+    getLatestDigest().catch(() => null),
+    getPublishedPostCount().catch(() => 0),
   ]);
 
   // Select topic — weighted random avoiding recent (D-04)
@@ -79,13 +78,15 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen p-6">
-      {topic && (
-        <TopicPromptCard topicName={topic.name} angles={angles} />
-      )}
       {digestText != null && (
         <WeeklyDigestCard digestText={digestText} />
       )}
-      <HomeClient drafts={drafts} topicAreas={topicAreas} />
+      <HomeClient
+        drafts={drafts}
+        topicAreas={topicAreas}
+        topicName={topic?.name ?? null}
+        angles={angles}
+      />
     </main>
   );
 }

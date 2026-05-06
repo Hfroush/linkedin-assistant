@@ -14,26 +14,25 @@ import {
  * Returns all draft posts ordered by createdAt DESC.
  * Selects columns needed by the sidebar and tag row.
  */
-export async function getDrafts(): Promise<
-  Pick<
-    Post,
-    | "id"
-    | "roughIdea"
-    | "draftText"
-    | "createdAt"
-    | "hookType"
-    | "narrativeStructure"
-    | "topicId"
-    | "scheduledTime"
-    | "status"
-    | "reactions"
-    | "comments"
-    | "reposts"
-    | "impressions"
-    | "engagementRate"
-  >[]
-> {
-  return db
+type DraftRow = {
+  id: string;
+  roughIdea: string | null;
+  draftText: string | null;
+  createdAt: Date;
+  hookType: string | null;
+  narrativeStructure: string | null;
+  topicId: number | null;
+  scheduledTime: Date | null;
+  status: "draft" | "published";
+  reactions: number | null;
+  comments: number | null;
+  reposts: number | null;
+  impressions: number | null;
+  engagementRate: number | null;
+};
+
+export async function getDrafts(): Promise<DraftRow[]> {
+  const rows = await db
     .select({
       id: posts.id,
       roughIdea: posts.roughIdea,
@@ -52,6 +51,7 @@ export async function getDrafts(): Promise<
     })
     .from(posts)
     .orderBy(desc(posts.createdAt));
+  return rows as DraftRow[];
 }
 
 /**
@@ -82,7 +82,7 @@ export async function getRecentPostTopics(windowDays = 14): Promise<number[]> {
  * Used by /discover page to render the inspiration feed.
  */
 export async function getTrendingItems(): Promise<
-  (TrendingItem & { topicName: string | null })[]
+  (Omit<TrendingItem, "sourceType"> & { sourceType: "rss" | "bookmark"; topicName: string | null })[]
 > {
   const now = new Date();
   const rows = await db
@@ -107,7 +107,7 @@ export async function getTrendingItems(): Promise<
       )
     )
     .orderBy(desc(trendingItems.fetchedAt));
-  return rows;
+  return rows as (Omit<TrendingItem, "sourceType"> & { sourceType: "rss" | "bookmark"; topicName: string | null })[];
 }
 
 /**

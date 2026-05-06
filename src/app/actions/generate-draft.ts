@@ -4,6 +4,7 @@ import { anthropic } from "@/lib/anthropic";
 import { getVoiceProfile } from "@/lib/voice-profile";
 import { db } from "@/db/client";
 import { posts } from "@/db/schema";
+import { reviewDraft, recordApprovedDraft } from "@/lib/linguistic-guardrail";
 
 type PostFormat = "story_arc" | "hot_take" | "short_insight" | "essay";
 
@@ -13,6 +14,8 @@ const VALID_FORMATS: PostFormat[] = [
   "short_insight",
   "essay",
 ];
+
+const CONTEXT_KEY = "linkedin_posts";
 
 function getFormatInstruction(format: PostFormat): string {
   switch (format) {
@@ -27,24 +30,11 @@ function getFormatInstruction(format: PostFormat): string {
   }
 }
 
-export async function generateDraft(
-  roughIdea: string,
-  format: PostFormat
-): Promise<{ postId: string; draftText: string }> {
-  // Input validation — performed before any API call
-  if (roughIdea.trim().length === 0) {
-    throw new Error("Rough idea cannot be empty");
-  }
-  if (roughIdea.length > 2000) {
-    throw new Error("Rough idea too long (max 2000 characters)");
-  }
-  if (!VALID_FORMATS.includes(format)) {
-    throw new Error("Invalid format");
-  }
-
-  const voiceProfileText = await getVoiceProfile();
-  const formatInstruction = getFormatInstruction(format);
-
+async function callClaude(
+  voiceProfileText: string,
+  systemInstruction: string,
+  userMessage: string
+): Promise<string> {
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 1024,
@@ -54,26 +44,57 @@ export async function generateDraft(
         text: voiceProfileText,
         cache_control: { type: "ephemeral" },
       },
-      {
-        type: "text",
-        text: "You are a LinkedIn content assistant for Houtan Froushan. Draft posts in exactly the voice described above — the voice profile is your primary constraint. Avoid inspiration-speak, generic motivational language, and hollow calls to action. Personal detail must be load-bearing. Open with displacement, not frame-setting. Close before you finish the argument.",
-      },
+      { type: "text", text: systemInstruction },
     ],
-    messages: [
-      {
-        role: "user",
-        content: `${formatInstruction}\n\nRough idea: ${roughIdea}`,
-      },
-    ],
+    messages: [{ role: "user", content: userMessage }],
   });
+  const first = response.content[0];
+  if (!first || first.type !== "text") throw new Error("No text content from Claude");
+  return first.text;
+}
 
-  const firstContent = response.content[0];
-  if (!firstContent || firstContent.type !== "text") {
-    throw new Error("Unexpected response format from Claude — no text content");
+export async function generateDraft(
+  roughIdea: string,
+  format: PostFormat
+): Promise<{ postId: string; draftText: string }> {
+  if (roughIdea.trim().length === 0) throw new Error("Rough idea cannot be empty");
+  if (roughIdea.length > 2000) throw new Error("Rough idea too long (max 2000 characters)");
+  if (!VALID_FORMATS.includes(format)) throw new Error("Invalid format");
+
+  const voiceProfileText = await getVoiceProfile();
+  const formatInstruction = getFormatInstruction(format);
+  const draftSystemPrompt =
+    "You are a LinkedIn content assistant for Houtan Froushan. Draft posts in exactly the voice described above — the voice profile is your primary constraint. Avoid inspiration-speak, generic motivational language, and hollow calls to action. Personal detail must be load-bearing. Open with displacement, not frame-setting. Close before you finish the argument.";
+
+  // --- Initial draft ---
+  let draftText = await callClaude(
+    voiceProfileText,
+    draftSystemPrompt,
+    `${formatInstruction}\n\nRough idea: ${roughIdea}`
+  );
+
+  // --- Linguistic guardrail: review → repair (one attempt) → record ---
+  try {
+    const review = await reviewDraft(draftText, {
+      contextKey: CONTEXT_KEY,
+      contentGoal: `LinkedIn post about: ${roughIdea.slice(0, 200)}. Keep Houtan's analytical, direct voice.`,
+    });
+
+    if (!review.approved && review.repairPrompt) {
+      const repairedText = await callClaude(
+        voiceProfileText,
+        "You are a LinkedIn content assistant for Houtan Froushan. Rewrite the post following the repair instructions exactly. Keep his analytical, direct voice — the voice profile above is your primary constraint.",
+        review.repairPrompt
+      );
+      draftText = repairedText;
+    }
+
+    await recordApprovedDraft(draftText, CONTEXT_KEY);
+  } catch {
+    // Guardrail is non-fatal — use whatever draft we have
   }
 
-  const draftText = firstContent.text;
-
+  // --- Persist to DB ---
   const postId = crypto.randomUUID();
   await db.insert(posts).values({
     id: postId,

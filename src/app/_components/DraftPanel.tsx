@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { generateDraft } from "@/app/actions/generate-draft";
+import { autoTagDraft, type AutoTagResult } from "@/app/actions/auto-tag";
 import TagRow from "./TagRow";
 import type { DraftSummary } from "./HistorySidebar";
 
@@ -11,47 +11,62 @@ type PostFormat = "story_arc" | "hot_take" | "short_insight" | "essay";
 interface DraftPanelProps {
   topicAreas?: Array<{ id: number; name: string }>;
   loadedDraft?: DraftSummary | null;
+  seedIdea?: string | null;
 }
 
 export default function DraftPanel({
   topicAreas = [],
   loadedDraft,
+  seedIdea,
 }: DraftPanelProps) {
   const [roughIdea, setRoughIdea] = useState("");
   const [format, setFormat] = useState<PostFormat>("short_insight");
   const [draft, setDraft] = useState<string | null>(null);
   const [postId, setPostId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTagging, setIsTagging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [autoTags, setAutoTags] = useState<AutoTagResult | null>(null);
+  // Incrementing key forces TagRow to remount when auto-tags arrive
+  const [tagRowKey, setTagRowKey] = useState(0);
 
-  // D-08: clicking a past draft in the sidebar loads it into the main draft area
+  // Load a past draft from the sidebar
   useEffect(() => {
     if (!loadedDraft) return;
     setDraft(loadedDraft.draftText ?? "");
     setPostId(loadedDraft.id);
     setRoughIdea(loadedDraft.roughIdea ?? "");
+    setAutoTags(null);
     setError(null);
   }, [loadedDraft]);
 
-  // Phase 3: pre-fill from ?roughIdea= query param (angle button or article card click-to-draft)
-  // D-09: no auto-generate — user sees pre-filled textarea and presses Generate manually
-  const searchParams = useSearchParams();
+  // Pre-fill from angle button or article card
   useEffect(() => {
-    const seed = searchParams.get("roughIdea");
-    if (seed && !loadedDraft) {
-      setRoughIdea(seed); // searchParams.get() already URL-decodes the value
+    if (seedIdea && !loadedDraft) {
+      setRoughIdea(seedIdea);
     }
-  }, []); // intentional empty dep array — run once on mount only
+  }, [seedIdea]);
 
   async function handleGenerate() {
     setIsLoading(true);
     setError(null);
+    setAutoTags(null);
     try {
       const result = await generateDraft(roughIdea, format);
       setDraft(result.draftText);
       setPostId(result.postId);
       setCopied(false);
+
+      // Auto-tag in background — draft is already visible, tags fill in after
+      setIsTagging(true);
+      autoTagDraft(result.postId, result.draftText, topicAreas)
+        .then((tags) => {
+          setAutoTags(tags);
+          setTagRowKey((k) => k + 1);
+        })
+        .catch(() => {})
+        .finally(() => setIsTagging(false));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
@@ -66,9 +81,25 @@ export default function DraftPanel({
     setTimeout(() => setCopied(false), 2000);
   }
 
+  // Resolve which tags to show: loaded draft tags > auto-tags > nothing
+  const resolvedTags = loadedDraft
+    ? {
+        hookType: loadedDraft.hookType,
+        narrativeStructure: loadedDraft.narrativeStructure,
+        topicId: loadedDraft.topicId,
+        scheduledTime: loadedDraft.scheduledTime,
+        status: loadedDraft.status,
+      }
+    : autoTags
+    ? {
+        hookType: autoTags.hookType,
+        narrativeStructure: autoTags.narrativeStructure,
+        topicId: autoTags.topicId,
+      }
+    : undefined;
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Rough idea textarea */}
       <textarea
         value={roughIdea}
         onChange={(e) => setRoughIdea(e.target.value)}
@@ -79,7 +110,6 @@ export default function DraftPanel({
       />
 
       <div className="flex items-center gap-3">
-        {/* Format picker */}
         <select
           value={format}
           onChange={(e) => setFormat(e.target.value as PostFormat)}
@@ -91,7 +121,6 @@ export default function DraftPanel({
           <option value="essay">Essay</option>
         </select>
 
-        {/* Generate button */}
         <button
           onClick={handleGenerate}
           disabled={isLoading || roughIdea.trim().length === 0}
@@ -101,48 +130,42 @@ export default function DraftPanel({
         </button>
       </div>
 
-      {/* Error display */}
       {error && <p className="text-red-600 text-sm">{error}</p>}
 
-      {/* Draft display — appears below the input on the same screen (D-02) */}
       {draft !== null && (
         <div className="mt-2">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-gray-700">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
               Generated draft
             </h2>
             <button
               onClick={handleCopy}
-              className="text-xs px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              className="text-xs px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300 transition-colors"
             >
               {copied ? "Copied!" : "Copy"}
             </button>
           </div>
           <div
             data-post-id={postId}
-            className="border border-gray-200 rounded-md p-4 bg-gray-50"
+            className="border border-gray-200 dark:border-gray-700 rounded-md p-4 bg-white dark:bg-gray-900"
           >
-            <p className="text-sm whitespace-pre-wrap leading-relaxed">
+            <p className="text-sm whitespace-pre-wrap leading-relaxed text-gray-900 dark:text-gray-100">
               {draft}
             </p>
           </div>
-          {/* Inline tag row — 5 dropdowns appear as soon as draft is generated (TAGS-05) */}
+
           {postId && (
-            <TagRow
-              postId={postId}
-              topicAreas={topicAreas}
-              initialTags={
-                loadedDraft
-                  ? {
-                      hookType: loadedDraft.hookType,
-                      narrativeStructure: loadedDraft.narrativeStructure,
-                      topicId: loadedDraft.topicId,
-                      scheduledTime: loadedDraft.scheduledTime,
-                      status: loadedDraft.status,
-                    }
-                  : undefined
-              }
-            />
+            <div className="relative">
+              <TagRow
+                key={tagRowKey}
+                postId={postId}
+                topicAreas={topicAreas}
+                initialTags={resolvedTags}
+              />
+              {isTagging && (
+                <p className="text-xs text-gray-400 mt-1">Classifying tags…</p>
+              )}
+            </div>
           )}
         </div>
       )}

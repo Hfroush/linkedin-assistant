@@ -17,11 +17,11 @@ export async function upsertVoiceProfile(docxPath: string): Promise<void> {
   const rawBytes = await readFile(absolutePath);
   const checksum = createHash("sha256").update(rawBytes).digest("hex");
 
-  const existing = await db
+  const [existing] = await db
     .select({ docxChecksum: voiceProfile.docxChecksum })
     .from(voiceProfile)
     .where(eq(voiceProfile.id, 1))
-    .get();
+    .limit(1);
 
   if (existing?.docxChecksum === checksum) {
     console.log("Voice profile unchanged (checksum match) — skipping re-parse.");
@@ -72,11 +72,11 @@ export async function upsertVoiceProfile(docxPath: string): Promise<void> {
  * Throws if the profile has not been stored yet — run `npm run seed` first.
  */
 export async function getVoiceProfile(): Promise<string> {
-  const row = await db
+  const [row] = await db
     .select({ rawText: voiceProfile.rawText })
     .from(voiceProfile)
     .where(eq(voiceProfile.id, 1))
-    .get();
+    .limit(1);
 
   if (!row) {
     throw new Error(
