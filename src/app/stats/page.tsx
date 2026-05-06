@@ -1,5 +1,7 @@
 import { getTagDimensionStats, getPublishedPostsWithMetrics, getTopicAreas } from "@/db/queries";
 import { ReauthBanner } from "./_components/ReauthBanner";
+import { StatsTableRow } from "./_components/StatsTableRow";
+import { fmtRate, fmtHour } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -12,20 +14,6 @@ export default async function StatsPage() {
 
   // Build topicId → name lookup
   const topicMap = Object.fromEntries(topicAreas.map((t) => [t.id, t.name]));
-
-  // Format a decimal rate (0.042) as "4.2%"; return "—" for null/undefined
-  function fmtRate(rate: number | null | undefined): string {
-    if (rate == null) return "—";
-    return `${(rate * 100).toFixed(1)}%`;
-  }
-
-  // Format posting hour (UTC) as "9 AM" / "2 PM"
-  function fmtHour(hour: number | null | undefined): string {
-    if (hour == null) return "—";
-    const h = hour % 12 === 0 ? 12 : hour % 12;
-    const ampm = hour < 12 ? "AM" : "PM";
-    return `${h} ${ampm}`;
-  }
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8 space-y-10">
@@ -90,36 +78,26 @@ export default async function StatsPage() {
                   <th className="py-2 pr-3 font-medium">Narrative</th>
                   <th className="py-2 pr-3 font-medium">Topic</th>
                   <th className="py-2 pr-3 font-medium">Time</th>
-                  <th className="py-2 font-medium text-right">Eng. Rate</th>
+                  <th className="py-2 pr-3 font-medium text-right">Eng. Rate</th>
+                  <th className="py-2 pr-3 font-medium">LinkedIn URL</th>
+                  <th className="py-2 font-medium">Refresh</th>
                 </tr>
               </thead>
               <tbody>
                 {publishedPosts.map((post) => {
                   // Use publishedAt ?? scheduledTime ?? createdAt for posting-hour analysis
-                  // (per review feedback — scheduledTime alone is not reliable)
                   const postingDate = post.publishedAt ?? post.scheduledTime ?? post.createdAt;
                   const postingHour = postingDate
                     ? new Date(postingDate).getUTCHours()
                     : null;
                   return (
-                    <tr key={post.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-2 pr-4 max-w-[200px]">
-                        <span className="line-clamp-2 text-gray-800">
-                          {post.roughIdea ?? post.draftText?.slice(0, 80) ?? "—"}
-                        </span>
-                      </td>
-                      <td className="py-2 pr-3 text-gray-600">{post.hookType ?? "—"}</td>
-                      <td className="py-2 pr-3 text-gray-600">{post.narrativeStructure ?? "—"}</td>
-                      <td className="py-2 pr-3 text-gray-600">
-                        {post.topicId ? (topicMap[post.topicId] ?? `Topic ${post.topicId}`) : "—"}
-                      </td>
-                      <td className="py-2 pr-3 text-gray-600">
-                        {fmtHour(postingHour)}
-                      </td>
-                      <td className="py-2 text-right font-mono">
-                        {fmtRate(post.engagementRate)}
-                      </td>
-                    </tr>
+                    <StatsTableRow
+                      key={post.id}
+                      post={post}
+                      topicName={post.topicId ? topicMap[post.topicId] : undefined}
+                      postingHour={postingHour}
+                      fmtHour={fmtHour}
+                    />
                   );
                 })}
               </tbody>
