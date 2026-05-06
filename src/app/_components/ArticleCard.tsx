@@ -51,7 +51,8 @@ export default function ArticleCard({
   const displayTitle = title ?? sourceUrl;
 
   function handleDraftFromThis() {
-    const prefillText = `${displayTitle} (${sourceUrl})\n\nMy take:`;
+    const summaryBlock = summary ? `\n\nSummary: ${summary}` : "";
+    const prefillText = `${displayTitle} (${sourceUrl})${summaryBlock}\n\nMy take:`;
     sessionStorage.setItem("draftPrefill", prefillText);
     router.push("/");
   }
