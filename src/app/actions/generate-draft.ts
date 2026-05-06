@@ -5,6 +5,7 @@ import { getVoiceProfile } from "@/lib/voice-profile";
 import { db } from "@/db/client";
 import { posts } from "@/db/schema";
 import { reviewDraft, recordApprovedDraft } from "@/lib/linguistic-guardrail";
+import { logger } from "@/lib/logger";
 
 type PostFormat = "story_arc" | "hot_take" | "short_insight" | "essay";
 
@@ -75,23 +76,37 @@ export async function generateDraft(
 
   // --- Linguistic guardrail: review → repair (one attempt) → record ---
   try {
-    const review = await reviewDraft(draftText, {
+    let finalReview = await reviewDraft(draftText, {
       contextKey: CONTEXT_KEY,
       contentGoal: `LinkedIn post about: ${roughIdea.slice(0, 200)}. Keep Houtan's analytical, direct voice.`,
     });
 
-    if (!review.approved && review.repairPrompt) {
-      const repairedText = await callClaude(
+    if (!finalReview.approved && finalReview.repairPrompt) {
+      draftText = await callClaude(
         voiceProfileText,
         "You are a LinkedIn content assistant for Houtan Froushan. Rewrite the post following the repair instructions exactly. Keep his analytical, direct voice — the voice profile above is your primary constraint.",
-        review.repairPrompt
+        finalReview.repairPrompt
       );
-      draftText = repairedText;
+
+      finalReview = await reviewDraft(draftText, {
+        contextKey: CONTEXT_KEY,
+        contentGoal: `LinkedIn post about: ${roughIdea.slice(0, 200)}. Keep Houtan's analytical, direct voice.`,
+      });
     }
 
-    await recordApprovedDraft(draftText, CONTEXT_KEY);
-  } catch {
-    // Guardrail is non-fatal — use whatever draft we have
+    if (finalReview.approved) {
+      await recordApprovedDraft(draftText, CONTEXT_KEY);
+    } else {
+      logger.warn("Draft did not pass linguistic guardrail after repair", {
+        score: finalReview.score,
+        issues: finalReview.issues.map((issue) => issue.ruleName),
+      });
+    }
+  } catch (error) {
+    logger.error("Linguistic guardrail failed", error, {
+      roughIdeaLength: roughIdea.length,
+      format,
+    });
   }
 
   // --- Persist to DB ---
