@@ -6,11 +6,6 @@ import { posts } from "@/db/schema";
 import { pullLinkedInPostMetrics } from "@/lib/apify";
 import { calculateEngagementRate } from "@/lib/metrics";
 
-// Vercel Pro plan required — 60-second function timeout.
-// Without this export, Vercel Hobby caps at 10 seconds (Apify scrapes take 15-40s).
-// If on Hobby plan, most calls will timeout. Upgrade to Pro or accept high failure rate.
-export const maxDuration = 60;
-
 type PullResult =
   | {
       success: true;

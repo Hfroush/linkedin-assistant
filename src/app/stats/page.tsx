@@ -1,3 +1,6 @@
+// Apify scrapes take 15-40s — extend timeout for pullMetrics Server Action calls
+export const maxDuration = 60;
+
 import { getTagDimensionStats, getPublishedPostsWithMetrics, getTopicAreas } from "@/db/queries";
 import { ReauthBanner } from "./_components/ReauthBanner";
 import { StatsTableRow } from "./_components/StatsTableRow";

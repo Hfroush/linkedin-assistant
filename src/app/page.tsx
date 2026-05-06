@@ -1,3 +1,6 @@
+// Apify scrapes take 15-40s — extend timeout for pullMetrics Server Action calls
+export const maxDuration = 60;
+
 import { getDrafts, getTopicAreas, getRecentPostTopics, getLatestDigest, getPublishedPostCount } from "@/db/queries";
 import { generateAngles } from "@/app/actions/generate-angles";
 import { generateDigest } from "@/app/actions/generate-digest";
