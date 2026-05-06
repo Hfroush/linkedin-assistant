@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { generateDraft } from "@/app/actions/generate-draft";
 import { autoTagDraft, type AutoTagResult } from "@/app/actions/auto-tag";
 import TagRow from "./TagRow";
@@ -41,12 +42,18 @@ export default function DraftPanel({
     setError(null);
   }, [loadedDraft]);
 
-  // Pre-fill from angle button or article card
+  const searchParams = useSearchParams();
+
+  // Pre-fill from angle button (seedIdea prop) or article card (?roughIdea= URL param)
   useEffect(() => {
-    if (seedIdea && !loadedDraft) {
+    if (loadedDraft) return;
+    if (seedIdea) {
       setRoughIdea(seedIdea);
+      return;
     }
-  }, [seedIdea]);
+    const urlSeed = searchParams.get("roughIdea");
+    if (urlSeed) setRoughIdea(urlSeed);
+  }, [seedIdea, searchParams, loadedDraft]);
 
   async function handleGenerate() {
     setIsLoading(true);
