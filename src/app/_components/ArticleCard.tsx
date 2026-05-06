@@ -37,10 +37,12 @@ export default function ArticleCard({
   const router = useRouter();
 
   const displayTitle = title ?? sourceUrl;
-  // D-08: article pre-fill format: [title] (url)\n\nMy take:
-  const prefill = encodeURIComponent(
-    `${displayTitle} (${sourceUrl})\n\nMy take:`
-  );
+
+  function handleDraftFromThis() {
+    const prefillText = `${displayTitle} (${sourceUrl})\n\nMy take:`;
+    sessionStorage.setItem("draftPrefill", prefillText);
+    router.push("/");
+  }
 
   return (
     <article className="flex flex-col gap-2 p-4 border border-gray-200 rounded-md bg-white hover:border-gray-300 transition-colors">
@@ -55,17 +57,21 @@ export default function ArticleCard({
           {relativeTime(fetchedAt)}
         </span>
       </div>
-      <p className="text-sm font-semibold text-gray-900 leading-snug">
+      <a
+        href={sourceUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-sm font-semibold text-gray-900 hover:text-blue-600 hover:underline leading-snug"
+      >
         {displayTitle}
-      </p>
+      </a>
       {summary && (
         <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
           {summary}
         </p>
       )}
-      {/* D-07: full page navigation to /?roughIdea=... — no modal */}
       <button
-        onClick={() => router.push(`/?roughIdea=${prefill}`)}
+        onClick={handleDraftFromThis}
         className="self-start text-sm text-blue-600 hover:underline mt-1"
       >
         Draft from this →
