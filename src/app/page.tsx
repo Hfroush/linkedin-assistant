@@ -19,7 +19,12 @@ function selectWeightedTopic(
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ roughIdea?: string }>;
+}) {
+  const { roughIdea } = await searchParams;
   const [drafts, topicAreas, recentTopicIds, latestDigest, publishedPostCount] = await Promise.all([
     getDrafts().catch(() => [] as Awaited<ReturnType<typeof getDrafts>>),
     getTopicAreas().catch(() => [] as Awaited<ReturnType<typeof getTopicAreas>>),
@@ -86,6 +91,7 @@ export default async function Home() {
         topicAreas={topicAreas}
         topicName={topic?.name ?? null}
         angles={angles}
+        initialSeedIdea={roughIdea ? decodeURIComponent(roughIdea) : null}
       />
     </main>
   );

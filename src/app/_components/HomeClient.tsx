@@ -11,11 +11,12 @@ interface HomeClientProps {
   topicAreas: Array<{ id: number; name: string }>;
   topicName: string | null;
   angles: string[];
+  initialSeedIdea?: string | null;
 }
 
-export default function HomeClient({ drafts, topicAreas, topicName, angles }: HomeClientProps) {
+export default function HomeClient({ drafts, topicAreas, topicName, angles, initialSeedIdea }: HomeClientProps) {
   const [loadedDraft, setLoadedDraft] = useState<DraftSummary | null>(null);
-  const [seedIdea, setSeedIdea] = useState<string | null>(null);
+  const [seedIdea, setSeedIdea] = useState<string | null>(initialSeedIdea ?? null);
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-6">
