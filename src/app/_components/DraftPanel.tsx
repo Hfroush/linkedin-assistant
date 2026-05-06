@@ -44,7 +44,17 @@ export default function DraftPanel({
 
   const searchParams = useSearchParams();
 
-  // Pre-fill from angle button (seedIdea prop) or article card (?roughIdea= URL param)
+  // Pre-fill from sessionStorage (article card → Draft from this)
+  useEffect(() => {
+    if (loadedDraft) return;
+    const stored = sessionStorage.getItem("draftPrefill");
+    if (stored) {
+      sessionStorage.removeItem("draftPrefill");
+      setRoughIdea(stored);
+    }
+  }, [loadedDraft]);
+
+  // Pre-fill from angle button (seedIdea prop) or legacy ?roughIdea= URL param
   useEffect(() => {
     if (loadedDraft) return;
     if (seedIdea) {
