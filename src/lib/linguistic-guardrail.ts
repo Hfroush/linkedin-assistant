@@ -160,13 +160,78 @@ const DEFAULT_RULES: PhraseRule[] = [
   },
   {
     name: "em_dash_overuse",
-    pattern:
-      "(?:—[^—\\n]*){2}—",
+    pattern: "(?:—[^—\\n]*){2}—",
     severity: 25,
     explanation:
       "Uses three or more em dashes in close proximity — a common AI writing tic that fragments sentences artificially.",
     suggestion:
       "Limit em dashes to one per paragraph. Rewrite interrupted clauses as complete sentences.",
+  },
+  {
+    name: "ai_vocabulary",
+    pattern:
+      "\\b(?:pivotal|showcase[sd]?|showcasing|underscore[sd]?|underscores|fostering|vibrant|tapestry|garner(?:ed|ing|s)?|intricate(?:ly)?|groundbreaking|renowned|breathtaking|profound(?:ly)?|encompassing|cultivating)\\b",
+    severity: 15,
+    explanation:
+      "Uses high-frequency AI vocabulary words that signal generated prose (pivotal, showcase, underscores, fostering, vibrant, etc.).",
+    suggestion:
+      "Replace with specific, concrete language. Earn the meaning instead of asserting it.",
+  },
+  {
+    name: "copula_avoidance",
+    pattern:
+      "\\b(?:serves? as an?|stands? as an?|functions? as an?|acts? as an?|operates? as an?)\\b",
+    severity: 20,
+    explanation:
+      "Substitutes an elaborate construction for a plain 'is' or 'are' — a hallmark of AI prose.",
+    suggestion: "Replace 'serves as a X' with 'is a X'.",
+  },
+  {
+    name: "superficial_ing",
+    pattern:
+      "\\b(?:underscoring|highlighting|showcasing|symbolizing|reflecting|emphasizing|fostering|encompassing|cultivating)\\s+(?:the|its|their|how|that|an?|what)\\b",
+    severity: 20,
+    explanation:
+      "Tacks a present-participle phrase onto a sentence to add fake analytical depth.",
+    suggestion:
+      "Cut the participle phrase. If the point matters, make it its own sentence with a real subject.",
+  },
+  {
+    name: "persuasive_authority",
+    pattern:
+      "\\b(?:the real question is|what really matters is|fundamentally,|the deeper issue|the heart of the matter|in reality,|what it (?:really )?comes down to)\\b",
+    severity: 20,
+    explanation:
+      "Uses fake-depth framing to restate an ordinary point with extra ceremony.",
+    suggestion: "Cut the framing. State the point directly.",
+  },
+  {
+    name: "generic_positive_conclusion",
+    pattern:
+      "\\b(?:the future (?:looks|is) bright|exciting times? (?:lie|lies|are) ahead|continues? (?:to thrive|their journey|its journey)|this represents? a (?:major|significant|key) step|the (?:journey|path) (?:forward|ahead))\\b",
+    severity: 25,
+    explanation:
+      "Uses a vague upbeat ending that says nothing concrete.",
+    suggestion:
+      "End with the last specific thing that happened, or a concrete next action.",
+  },
+  {
+    name: "filler_phrases",
+    pattern:
+      "\\b(?:in order to|due to the fact that|at this point in time|it is (?:important|worth(?:while)?) to note that|the fact of the matter is|needless to say|it goes without saying)\\b",
+    severity: 15,
+    explanation:
+      "Uses a filler phrase that adds length without adding meaning.",
+    suggestion: "Cut to: 'to', 'because', 'now', or remove the phrase entirely.",
+  },
+  {
+    name: "vague_attribution",
+    pattern:
+      "\\b(?:(?:industry |some |many )?(?:experts?|observers?|analysts?|critics?) (?:argue|suggest|believe|note|say|claim)|(?:studies|research) (?:show|suggest|indicate) that)\\b",
+    severity: 15,
+    explanation:
+      "Attributes a claim to unnamed experts or vague studies without a specific source.",
+    suggestion: "Name the source, or rewrite as your own direct claim.",
   },
 ];
 
@@ -392,11 +457,21 @@ Opening lines recently used — do not imitate their structure, rhythm, or first
 ${recentLines}
 
 Rules:
-- Do not use 'not just X, but Y'.
+- Do not use 'not just X, but Y' or 'not merely X, but Y'.
 - Do not use 'X is not a Y, it is a Z'.
-- Do not use generic phrases such as 'in today's world', 'unlock the power', 'game-changer', 'seamless', or 'transformative'.
+- Do not use negative parallelism: 'Not X. Not Y.' or 'Not X, not Y,'.
+- Do not use two-sentence negation reversals: 'It's not X. It's Y.'
+- No em dash overuse — maximum one em dash per paragraph.
+- Do not use generic phrases: 'in today's world', 'unlock the power', 'game-changer', 'seamless', 'transformative', 'groundbreaking', 'pivotal', 'vibrant'.
+- Do not use AI vocabulary: 'showcase', 'underscores', 'fostering', 'tapestry', 'garner', 'intricate', 'renowned', 'profound', 'encompassing', 'cultivating'.
+- Do not use copula avoidance: replace 'serves as a', 'stands as a', 'functions as a' with 'is'.
+- Do not use tailing -ing phrases: 'underscoring that...', 'highlighting how...', 'showcasing the...', 'reflecting its...'.
+- Do not use fake-depth framing: 'The real question is', 'What really matters is', 'At its core', 'The heart of the matter'.
+- Do not use vague attributions: 'Experts argue', 'Studies suggest', 'Industry observers note'.
+- Do not use filler: 'In order to', 'Due to the fact that', 'It is important to note that'.
+- Do not use generic upbeat closings: 'The future looks bright', 'Exciting times lie ahead'.
 - Start with a specific observation, action, tension, or consequence.
-- Prefer concrete nouns and active verbs.
+- Prefer concrete nouns and active verbs. Use 'is'/'are' directly.
 - Keep the user's intended meaning intact.
 - Do not add unsupported facts.
 - Make the first sentence structurally different from the original opening.
