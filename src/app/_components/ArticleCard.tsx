@@ -17,6 +17,18 @@ function relativeTime(date: Date): string {
   return date.toLocaleDateString();
 }
 
+const TOPIC_COLORS: Record<string, { bg: string; text: string }> = {
+  "Founder psychology":                    { bg: "bg-violet-100",  text: "text-violet-700"  },
+  "Education as a design problem":         { bg: "bg-blue-100",    text: "text-blue-700"    },
+  "The archaeology of institutions":       { bg: "bg-amber-100",   text: "text-amber-700"   },
+  "What AI actually changes in education": { bg: "bg-emerald-100", text: "text-emerald-700" },
+  "The founder-as-translator":             { bg: "bg-rose-100",    text: "text-rose-700"    },
+  "Scale and intimacy":                    { bg: "bg-cyan-100",    text: "text-cyan-700"    },
+  "The gap between proof and belief":      { bg: "bg-orange-100",  text: "text-orange-700"  },
+};
+
+const DEFAULT_TOPIC_COLOR = { bg: "bg-gray-100", text: "text-gray-500" };
+
 interface ArticleCardProps {
   title: string | null;
   sourceUrl: string;
@@ -48,7 +60,7 @@ export default function ArticleCard({
     <article className="flex flex-col gap-2 p-4 border border-gray-200 rounded-md bg-white hover:border-gray-300 transition-colors">
       <div className="flex items-center gap-2">
         {topicName && (
-          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+          <span className={`text-xs px-2 py-1 rounded font-medium ${(TOPIC_COLORS[topicName] ?? DEFAULT_TOPIC_COLOR).bg} ${(TOPIC_COLORS[topicName] ?? DEFAULT_TOPIC_COLOR).text}`}>
             {topicName}
           </span>
         )}
