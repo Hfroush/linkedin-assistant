@@ -1,6 +1,8 @@
 import { getTagDimensionStats, getPublishedPostsWithMetrics, getTopicAreas } from "@/db/queries";
 import { ReauthBanner } from "./_components/ReauthBanner";
 
+export const dynamic = "force-dynamic";
+
 export default async function StatsPage() {
   const [stats, publishedPosts, topicAreas] = await Promise.all([
     getTagDimensionStats(),

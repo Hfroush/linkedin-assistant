@@ -1,6 +1,7 @@
 "use server";
 
 import { anthropic } from "@/lib/anthropic";
+import { logger } from "@/lib/logger";
 import { updateTags } from "./update-tags";
 
 const VALID_HOOK_TYPES = ["question", "stat", "story", "hot_take", "confession", "contrast"] as const;
@@ -52,7 +53,11 @@ ${draftText}`,
     // Strip markdown code fences if the model wraps in them anyway
     const json = raw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
     parsed = JSON.parse(json);
-  } catch {
+  } catch (error) {
+    logger.error("Failed to parse auto-tag response", error, {
+      postId,
+      rawResponse: raw,
+    });
     return { hookType: null, narrativeStructure: null, topicId: null };
   }
 
@@ -74,8 +79,13 @@ ${draftText}`,
   // Persist to DB (fire and don't block — ignore failure)
   try {
     await updateTags(postId, { hookType, narrativeStructure, topicId });
-  } catch {
-    // Non-fatal
+  } catch (error) {
+    logger.error("Failed to persist auto-tag result", error, {
+      postId,
+      hookType,
+      narrativeStructure,
+      topicId,
+    });
   }
 
   return { hookType, narrativeStructure, topicId };

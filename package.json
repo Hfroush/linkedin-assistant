@@ -6,9 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "sh -c 'set -a && [ -f .env.local ] && . .env.local; set +a; drizzle-kit generate'",
+    "db:migrate": "sh -c 'set -a && [ -f .env.local ] && . .env.local; set +a; drizzle-kit migrate'",
+    "db:push": "sh -c 'set -a && [ -f .env.local ] && . .env.local; set +a; drizzle-kit push'",
+    "db:studio": "sh -c 'set -a && [ -f .env.local ] && . .env.local; set +a; drizzle-kit studio'",
     "seed": "sh -c 'set -a && . .env.local && set +a && npx tsx scripts/seed.ts'",
-    "seed-topics": "sh -c 'set -a && . .env.local && set +a && npx tsx scripts/seed-topics.ts'"
+    "seed-topics": "sh -c 'set -a && . .env.local && set +a && npx tsx scripts/seed-topics.ts'",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
@@ -29,6 +35,7 @@
     "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }

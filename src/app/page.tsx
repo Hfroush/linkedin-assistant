@@ -5,6 +5,8 @@ import HomeClient from "./_components/HomeClient";
 import { WeeklyDigestCard } from "./_components/WeeklyDigestCard";
 import type { TopicArea } from "@/db/schema";
 
+export const dynamic = "force-dynamic";
+
 // Weighted random topic selection — prefers topics not in recentTopicIds.
 // If all 7 topics appear in recentTopicIds, falls back to any topic.
 // 14-day recency window (RESEARCH.md Pattern 4 — planner's discretion).

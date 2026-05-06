@@ -6,6 +6,7 @@ import { eq, and, gt, isNull, or } from "drizzle-orm";
 import Parser from "rss-parser";
 import { createHash } from "node:crypto";
 import { FEEDS, TOPIC_IDS } from "@/lib/feeds";
+import { logger } from "@/lib/logger";
 
 const parser = new Parser({ timeout: 8000 }); // 8s timeout — avoids stalling on slow feeds
 
@@ -51,7 +52,11 @@ export async function pollFeedsIfStale(): Promise<void> {
 
       for (const result of results) {
         if (result.status === "rejected") {
-          console.warn(`[poll-feeds] Feed fetch failed for topic ${topicId}:`, result.reason);
+          logger.warn("Feed fetch failed during polling", {
+            topicId,
+            error:
+              result.reason instanceof Error ? result.reason.message : String(result.reason),
+          });
           continue;
         }
 

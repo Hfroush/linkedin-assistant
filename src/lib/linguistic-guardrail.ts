@@ -287,6 +287,10 @@ function getRuleIssues(text: string): LinguisticIssue[] {
   return issues;
 }
 
+export function reviewTextAgainstRulesForTest(text: string): LinguisticIssue[] {
+  return getRuleIssues(normalizeSpace(text));
+}
+
 async function getOpeningIssues(
   openingLine: string,
   contextKey: string | null,

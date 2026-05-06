@@ -13,7 +13,7 @@ A personal AI-powered LinkedIn content assistant for Houtan. Turns rough ideas i
 - **Framework:** Next.js 15.2 (App Router, Server Components, Server Actions)
 - **Styling:** Tailwind CSS v4
 - **AI:** Anthropic SDK 0.92.x — use directly, not via Vercel AI SDK; use prompt caching for voice profile
-- **Database:** Turso (SQLite) + Drizzle ORM
+- **Database:** Neon Postgres + Drizzle ORM
 - **DOCX parsing:** mammoth
 - **RSS:** rss-parser
 - **Auth:** next-auth v5 (LinkedIn OAuth — Phase 4+)
@@ -42,7 +42,7 @@ See `.planning/REQUIREMENTS.md` for the full v1 requirement list.
 ## Key Decisions
 
 - Voice profile comes from `Houtan Linkedin.docx` — parse once, store in DB, inject as cached system prompt
-- No auth system needed — single-user personal tool
+- This is a single-user personal tool. Production deployments must be protected by Basic Auth, Vercel deployment protection, Cloudflare Access, or an equivalent access gate.
 - LinkedIn scraping is out of scope (ToS risk) — RSS + Google News + Substack are the discovery sources
 - Engagement rate = (reactions + comments + reposts) ÷ impressions
 - Post tagging must be inline during the draft flow — not a separate step

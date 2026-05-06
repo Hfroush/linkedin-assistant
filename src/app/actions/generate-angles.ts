@@ -1,6 +1,7 @@
 "use server";
 
 import { anthropic } from "@/lib/anthropic";
+import { logger } from "@/lib/logger";
 import { getVoiceProfile } from "@/lib/voice-profile";
 
 /**
@@ -31,31 +32,45 @@ export async function generateAngles(
           .join("\n")}`
       : "";
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 256,
-    system: [
-      {
-        type: "text",
-        text: voiceProfileText,
-        cache_control: { type: "ephemeral" }, // REQUIRED — voice profile is cached; task block is not
-      },
-      {
-        type: "text",
-        text: "You are a LinkedIn content assistant for Houtan Froushan. Generate exactly 3 angle options for a LinkedIn post. Each angle must be a specific, thought-provoking question or observation — no more than 12 words. Output only the 3 angles as a JSON array of strings, with no other text, no markdown, no preamble.",
-      },
-    ],
-    messages: [
-      {
-        role: "user",
-        content: `Topic: ${topicName}\nDescription: ${topicDescription}${contextBlock}\n\nGenerate 3 post angles.`,
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 256,
+      system: [
+        {
+          type: "text",
+          text: voiceProfileText,
+          cache_control: { type: "ephemeral" }, // REQUIRED — voice profile is cached; task block is not
+        },
+        {
+          type: "text",
+          text: "You are a LinkedIn content assistant for Houtan Froushan. Generate exactly 3 angle options for a LinkedIn post. Each angle must be a specific, thought-provoking question or observation — no more than 12 words. Output only the 3 angles as a JSON array of strings, with no other text, no markdown, no preamble.",
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: `Topic: ${topicName}\nDescription: ${topicDescription}${contextBlock}\n\nGenerate 3 post angles.`,
+        },
+      ],
+    });
+  } catch (error) {
+    logger.error("Failed to generate topic angles", error, {
+      topicName,
+      topicDescriptionLength: topicDescription.length,
+      trendingTitlesCount: trendingTitles.length,
+    });
+    return [];
+  }
 
   const firstContent = response.content[0];
   if (!firstContent || firstContent.type !== "text") {
-    return []; // unexpected response format — silent fail
+    logger.warn("Topic angle generation returned unexpected response format", {
+      topicName,
+      contentTypes: response.content.map((content) => content.type),
+    });
+    return [];
   }
 
   try {
@@ -63,8 +78,15 @@ export async function generateAngles(
     if (Array.isArray(angles) && angles.length === 3 && angles.every((a) => typeof a === "string")) {
       return angles;
     }
-  } catch {
-    // JSON parse failure — silent fail
+    logger.warn("Topic angle generation returned invalid JSON payload", {
+      topicName,
+      rawResponse: firstContent.text,
+    });
+  } catch (error) {
+    logger.error("Failed to parse topic angles JSON", error, {
+      topicName,
+      rawResponse: firstContent.text,
+    });
   }
 
   return [];

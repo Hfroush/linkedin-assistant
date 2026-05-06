@@ -3,6 +3,8 @@ import { pollFeedsIfStale } from "@/app/actions/poll-feeds";
 import ArticleFeed from "../_components/ArticleFeed";
 import BookmarkForm from "../_components/BookmarkForm";
 
+export const dynamic = "force-dynamic";
+
 export default async function DiscoverPage() {
   // Poll RSS feeds if DB data is stale or empty (DB-TTL gate inside action)
   await pollFeedsIfStale();

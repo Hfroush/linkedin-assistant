@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LinkedIn Assistant
 
-## Getting Started
+A personal AI-powered LinkedIn writing assistant. It turns rough ideas into draft posts in Houtan's voice, surfaces relevant articles, stores draft history, tracks manual post metrics, and uses performance data to improve future suggestions.
 
-First, run the development server:
+## Current status
+
+This is a single-user personal tool. It is suitable for local use or a protected private deployment. Do not deploy it publicly without access protection.
+
+## Stack
+
+- Next.js 15 App Router
+- React 19
+- Tailwind CSS v4
+- Anthropic SDK
+- Neon Postgres
+- Drizzle ORM
+- rss-parser
+- mammoth for DOCX parsing
+
+## Environment variables
+
+Copy the example file:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.local.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then set:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+ANTHROPIC_API_KEY=...
+DATABASE_URL=...
+APP_BASIC_AUTH_USERNAME=...
+APP_BASIC_AUTH_PASSWORD=...
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`APP_BASIC_AUTH_USERNAME` and `APP_BASIC_AUTH_PASSWORD` are required in production.
 
-## Learn More
+## Database setup
 
-To learn more about Next.js, take a look at the following resources:
+Generate and apply schema changes:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run db:generate
+npm run db:migrate
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+For fast local prototyping, you can use:
 
-## Deploy on Vercel
+```bash
+npm run db:push
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Seed data
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Seed topic areas:
+
+```bash
+npm run seed-topics
+```
+
+Seed the voice profile only after adding the private source document expected by `scripts/seed.ts`:
+
+```bash
+npm run seed
+```
+
+Do not commit the private DOCX file.
+
+## Local development
+
+```bash
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+## Verification
+
+```bash
+npm run test
+npm run typecheck
+npm run build
+```
+
+Or:
+
+```bash
+npm run check
+```
+
+## Deployment
+
+Before deploying to Vercel or another public host:
+
+1. Set `ANTHROPIC_API_KEY`.
+2. Set `DATABASE_URL`.
+3. Set `APP_BASIC_AUTH_USERNAME`.
+4. Set a long random `APP_BASIC_AUTH_PASSWORD`.
+5. Run database migrations.
+6. Seed topic areas.
+7. Seed the voice profile from the private DOCX source.
+8. Confirm the deployed app asks for credentials.
+
+## Security notes
+
+This app can generate AI content, mutate the database, and store private draft history. Keep it behind an access gate.
+
+Do not expose it as a public app until proper user accounts, rate limits, audit logging, and ownership checks exist.
