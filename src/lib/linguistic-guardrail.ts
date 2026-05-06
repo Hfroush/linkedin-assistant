@@ -160,10 +160,10 @@ const DEFAULT_RULES: PhraseRule[] = [
   },
   {
     name: "em_dash_overuse",
-    pattern: "(?:—[^—\\n]*){2}—",
+    pattern: "—[^—\\n]*—",
     severity: 25,
     explanation:
-      "Uses three or more em dashes in close proximity — a common AI writing tic that fragments sentences artificially.",
+      "Uses more than one em dash in a paragraph — a common AI writing tic that fragments sentences artificially.",
     suggestion:
       "Limit em dashes to one per paragraph. Rewrite interrupted clauses as complete sentences.",
   },
