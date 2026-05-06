@@ -29,6 +29,8 @@ type DraftRow = {
   reposts: number | null;
   impressions: number | null;
   engagementRate: number | null;
+  linkedinPostUrl: string | null;
+  metricsPulledAt: Date | null;
 };
 
 export async function getDrafts(): Promise<DraftRow[]> {
@@ -48,6 +50,8 @@ export async function getDrafts(): Promise<DraftRow[]> {
       reposts: posts.reposts,
       impressions: posts.impressions,
       engagementRate: posts.engagementRate,
+      linkedinPostUrl: posts.linkedinPostUrl,
+      metricsPulledAt: posts.metricsPulledAt,
     })
     .from(posts)
     .orderBy(desc(posts.createdAt));

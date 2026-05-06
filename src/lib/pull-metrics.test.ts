@@ -1,12 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// ---- Mock apify-client ----
-// We mock the full module so the apify.ts singleton never calls the real API.
-const mockListItems = vi.fn();
-const mockDataset = vi.fn(() => ({ listItems: mockListItems }));
-const mockActorCall = vi.fn();
-const mockActor = vi.fn(() => ({ call: mockActorCall }));
+// vi.hoisted ensures these variables are available when vi.mock factories run
+const {
+  mockActorCall,
+  mockActor,
+  mockListItems,
+  mockDataset,
+  mockSelect,
+  mockFrom,
+  mockWhere,
+  mockLimit,
+  mockUpdate,
+  mockSet,
+} = vi.hoisted(() => {
+  const mockActorCall = vi.fn();
+  const mockListItems = vi.fn();
+  return {
+    mockActorCall,
+    mockActor: vi.fn(() => ({ call: mockActorCall })),
+    mockListItems,
+    mockDataset: vi.fn(() => ({ listItems: mockListItems })),
+    mockSelect: vi.fn(),
+    mockFrom: vi.fn(),
+    mockWhere: vi.fn(),
+    mockLimit: vi.fn(),
+    mockUpdate: vi.fn(),
+    mockSet: vi.fn(),
+  };
+});
 
+// ---- Mock apify-client ----
 vi.mock("apify-client", () => ({
   ApifyClient: vi.fn().mockImplementation(() => ({
     actor: mockActor,
@@ -15,13 +38,6 @@ vi.mock("apify-client", () => ({
 }));
 
 // ---- Mock the db client ----
-const mockSelect = vi.fn();
-const mockUpdate = vi.fn();
-const mockSet = vi.fn();
-const mockWhere = vi.fn();
-const mockLimit = vi.fn();
-const mockFrom = vi.fn();
-
 vi.mock("@/db/client", () => ({
   db: {
     select: mockSelect,
@@ -32,7 +48,7 @@ vi.mock("@/db/client", () => ({
 // ---- Import pullMetrics AFTER mocks ----
 import { pullMetrics } from "@/app/actions/pull-metrics";
 
-// ----Helper: set up a default valid Apify response ----
+// ---- Helper: set up a default valid Apify response ----
 function setupApifySuccess(stats = { total_reactions: 42, comments: 5, reposts: 3 }) {
   mockActorCall.mockResolvedValueOnce({
     status: "SUCCEEDED",
