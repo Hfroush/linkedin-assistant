@@ -87,3 +87,23 @@ export async function getVoiceProfile(): Promise<string> {
 
   return row.rawText;
 }
+
+/**
+ * Retrieve the voice profile text for a specific account.
+ * Falls back to the personal account profile (id=1) if no account-specific profile exists.
+ * Used by Phase 6 account-aware generation.
+ */
+export async function getVoiceProfileForAccount(accountId: number): Promise<string> {
+  const [row] = await db
+    .select({ rawText: voiceProfile.rawText })
+    .from(voiceProfile)
+    .where(eq(voiceProfile.accountId, accountId))
+    .limit(1);
+
+  if (!row) {
+    // Fallback: personal account profile — UCL/Startup accounts use this until their DOCX is provided
+    return getVoiceProfile();
+  }
+
+  return row.rawText;
+}
