@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { posts, voiceCorrections, accounts } from "@/db/schema";
 import { revalidatePath } from "next/cache";
@@ -36,11 +36,11 @@ export async function logPublishedVersion({
   if (!Number.isInteger(accountId) || accountId < 1 || accountId > 3)
     throw new Error("Invalid accountId");
 
-  // Guard: read the post to get draftText and confirm it exists
+  // Guard: read the post to get draftText and confirm it exists AND belongs to this account
   const [existing] = await db
     .select({ draftText: posts.draftText, status: posts.status })
     .from(posts)
-    .where(eq(posts.id, postId))
+    .where(and(eq(posts.id, postId), eq(posts.accountId, accountId)))
     .limit(1);
 
   if (!existing) {

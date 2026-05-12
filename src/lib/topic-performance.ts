@@ -23,8 +23,9 @@ export async function updateTopicPerformance(
   topicId: number,
   engagementRate: number | null
 ): Promise<void> {
-  // Sanity check: negative engagement rate is invalid
-  if (engagementRate !== null && engagementRate < 0) return;
+  // Skip upsert when no engagement data — avoids inflating postsPublished denominator
+  if (engagementRate === null) return;
+  if (engagementRate < 0) return;
 
   await db
     .insert(topicPerformance)

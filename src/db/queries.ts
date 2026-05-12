@@ -37,12 +37,13 @@ type DraftRow = {
 };
 
 export async function getDrafts(accountId: number): Promise<DraftRow[]> {
-  // Lazy abandoned detection: mark drafts older than 7 days with no action as abandoned
+  // Lazy abandoned detection: mark THIS account's drafts older than 7 days with no action as abandoned
   await db
     .update(posts)
     .set({ selectionState: "abandoned" })
     .where(
       and(
+        eq(posts.accountId, accountId),
         isNull(posts.selectionState),
         eq(posts.status, "draft"),
         lt(posts.createdAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
@@ -173,11 +174,15 @@ export async function getPublishedPostsWithMetrics(accountId?: number) {
  * Note: this count includes posts that may not yet have impressions entered.
  * For metrics-ready posts specifically, see getTagDimensionStats().totalPostsWithMetrics.
  */
-export async function getPublishedPostCount() {
+export async function getPublishedPostCount(accountId?: number) {
+  const conditions = [eq(posts.status, "published")];
+  if (accountId !== undefined) {
+    conditions.push(eq(posts.accountId, accountId) as any);
+  }
   const result = await db
     .select({ count: sql<number>`count(*)` })
     .from(posts)
-    .where(eq(posts.status, "published"));
+    .where(and(...conditions));
   return result[0]?.count ?? 0;
 }
 

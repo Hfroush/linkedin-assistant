@@ -31,8 +31,8 @@ export default async function Home() {
     getDrafts(accountId).catch(() => [] as Awaited<ReturnType<typeof getDrafts>>),
     getTopicAreas().catch(() => [] as Awaited<ReturnType<typeof getTopicAreas>>),
     getRecentPostTopics(14).catch(() => [] as number[]),
-    getLatestDigest().catch(() => null),
-    getPublishedPostCount().catch(() => 0),
+    getLatestDigest(accountId).catch(() => null),
+    getPublishedPostCount(accountId).catch(() => 0),
   ]);
 
   // Select topic — weighted random avoiding recent (D-04)
