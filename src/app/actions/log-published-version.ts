@@ -74,7 +74,7 @@ export async function logPublishedVersion({
   // Dynamic import so this plan is deployable before Plan 04 ships
   import("@/lib/edit-patterns")
     .then(({ extractEditPatterns }) =>
-      extractEditPatterns(correctionId, draftText, publishedText.trim()).catch((err) =>
+      extractEditPatterns(correctionId, draftText, publishedText.trim()).catch((err: unknown) =>
         logger.error("extractEditPatterns failed (non-fatal)", err, { correctionId })
       )
     )
@@ -112,7 +112,7 @@ export async function logPublishedVersion({
         // Fire-and-forget re-synthesis (Plan 04 implements this)
         import("@/lib/edit-patterns")
           .then(({ resynthesizeVoiceAddendum }) =>
-            resynthesizeVoiceAddendum(accountId).catch((err) =>
+            resynthesizeVoiceAddendum(accountId).catch((err: unknown) =>
               logger.error("resynthesizeVoiceAddendum failed (non-fatal)", err, { accountId })
             )
           )

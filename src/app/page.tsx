@@ -93,6 +93,7 @@ export default async function Home() {
         topicAreas={topicAreas}
         topicName={topic?.name ?? null}
         angles={angles}
+        accountId={accountId}
       />
     </main>
   );
