@@ -5,14 +5,16 @@ import { getTagDimensionStats, getPublishedPostsWithMetrics, getTopicAreas } fro
 import { ReauthBanner } from "./_components/ReauthBanner";
 import { StatsTableRow } from "./_components/StatsTableRow";
 import { fmtRate, fmtHour } from "@/lib/format";
+import { getTopicPerformanceMatrix } from "@/lib/topic-performance";
 
 export const dynamic = "force-dynamic";
 
 export default async function StatsPage() {
-  const [stats, publishedPosts, topicAreas] = await Promise.all([
+  const [stats, publishedPosts, topicAreas, topicMatrix] = await Promise.all([
     getTagDimensionStats(),
     getPublishedPostsWithMetrics(),
     getTopicAreas(),
+    getTopicPerformanceMatrix(),
   ]);
 
   // Build topicId → name lookup
@@ -103,6 +105,41 @@ export default async function StatsPage() {
                     />
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Section 3: Topic Performance Matrix (LEARN-06) */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">Topic Performance (Cross-Account)</h2>
+        {topicMatrix.filter((t) => t.crossAccountAvgRate !== null).length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No topic performance data yet. Log published versions with engagement metrics to see rankings here.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wide">
+                  <th className="py-2 pr-4 font-medium">Topic</th>
+                  <th className="py-2 pr-3 font-medium text-right">Cross-Account Avg Rate</th>
+                  <th className="py-2 font-medium text-right">Posts Published</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topicMatrix.map((row) => (
+                  <tr key={row.topicId} className="border-b border-gray-100">
+                    <td className="py-2 pr-4 text-gray-900">{row.topicName}</td>
+                    <td className="py-2 pr-3 text-right text-gray-700">
+                      {row.crossAccountAvgRate !== null
+                        ? `${(row.crossAccountAvgRate * 100).toFixed(1)}%`
+                        : "—"}
+                    </td>
+                    <td className="py-2 text-right text-gray-500">{row.totalPostsPublished}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { reviewDraft, recordApprovedDraft } from "@/lib/linguistic-guardrail";
 import { logger } from "@/lib/logger";
 import { getActiveAccountId } from "@/lib/account";
+import { getTopTopicsForSoftSignal } from "@/lib/topic-performance";
 
 type PostFormat = "story_arc" | "hot_take" | "short_insight" | "essay";
 
@@ -163,12 +164,23 @@ export async function generateDraft(
   const voiceAddendum = accountRow?.voiceProfileAddendum ?? null;
   const formatInstruction = getFormatInstruction(format);
 
+  // Soft signal: top-performing topics (non-cached — changes as engagement data accumulates)
+  let topicSoftSignal = "";
+  try {
+    const topTopics = await getTopTopicsForSoftSignal();
+    if (topTopics.length > 0) {
+      topicSoftSignal = `\n\nPerformance signal: Your highest-engagement topics this month: ${topTopics.join(", ")}. Lean into these themes where natural.`;
+    }
+  } catch {
+    // Non-fatal — generation continues without the signal if query fails
+  }
+
   // --- 1. Initial draft ---
   let draftText = await callClaude(
     voiceProfileText,
     voiceAddendum,
     DRAFT_SYSTEM_PROMPT,
-    `${formatInstruction}\n\nRough idea: ${roughIdea}`
+    `${formatInstruction}\n\nRough idea: ${roughIdea}${topicSoftSignal}`
   );
 
   // --- 2. Regex guardrail ---

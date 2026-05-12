@@ -5,6 +5,7 @@ import { db } from "@/db/client";
 import { posts, voiceCorrections, accounts } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { logger } from "@/lib/logger";
+import { updateTopicPerformance } from "@/lib/topic-performance";
 
 /**
  * Logs the published version of a draft:
@@ -70,7 +71,26 @@ export async function logPublishedVersion({
     createdAt: new Date(),
   });
 
-  // 3. Fire-and-forget edit pattern extraction (Plan 04 implements extractEditPatterns)
+  // 3. Update topic performance matrix (non-fatal)
+  try {
+    const [postForTopic] = await db
+      .select({ topicId: posts.topicId, engagementRate: posts.engagementRate })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1);
+
+    if (postForTopic?.topicId !== null && postForTopic?.topicId !== undefined) {
+      await updateTopicPerformance(
+        accountId,
+        postForTopic.topicId,
+        postForTopic.engagementRate ?? null
+      );
+    }
+  } catch (err) {
+    logger.error("updateTopicPerformance failed (non-fatal)", err as Error, { postId, accountId });
+  }
+
+  // 5. Fire-and-forget edit pattern extraction (Plan 04 implements extractEditPatterns)
   // Dynamic import so this plan is deployable before Plan 04 ships
   import("@/lib/edit-patterns")
     .then(({ extractEditPatterns }) =>
@@ -82,7 +102,7 @@ export async function logPublishedVersion({
       // edit-patterns module not yet available — non-fatal, correction row still has value
     });
 
-  // 4. Check corrections count — trigger re-synthesis if >= 5 and no recent synthesis
+  // 6. Check corrections count — trigger re-synthesis if >= 5 and no recent synthesis
   try {
     const countResult = await db
       .select({ count: sql<number>`count(*)::int` })
