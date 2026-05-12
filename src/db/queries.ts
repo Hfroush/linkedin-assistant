@@ -1,4 +1,4 @@
-import { desc, gte, eq, gt, isNull, or, sql, and, isNotNull } from "drizzle-orm";
+import { desc, gte, eq, gt, isNull, or, sql, and, isNotNull, lt } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   posts,
@@ -33,7 +33,19 @@ type DraftRow = {
   metricsPulledAt: Date | null;
 };
 
-export async function getDrafts(): Promise<DraftRow[]> {
+export async function getDrafts(accountId: number): Promise<DraftRow[]> {
+  // Lazy abandoned detection: mark drafts older than 7 days with no action as abandoned
+  await db
+    .update(posts)
+    .set({ selectionState: "abandoned" })
+    .where(
+      and(
+        isNull(posts.selectionState),
+        eq(posts.status, "draft"),
+        lt(posts.createdAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+      )
+    );
+
   const rows = await db
     .select({
       id: posts.id,
@@ -54,6 +66,7 @@ export async function getDrafts(): Promise<DraftRow[]> {
       metricsPulledAt: posts.metricsPulledAt,
     })
     .from(posts)
+    .where(eq(posts.accountId, accountId))
     .orderBy(desc(posts.createdAt));
   return rows as DraftRow[];
 }

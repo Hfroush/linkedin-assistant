@@ -1,11 +1,14 @@
 "use server";
 
+import Anthropic from "@anthropic-ai/sdk";
 import { anthropic } from "@/lib/anthropic";
-import { getVoiceProfile } from "@/lib/voice-profile";
+import { getVoiceProfileForAccount } from "@/lib/voice-profile";
 import { db } from "@/db/client";
-import { posts } from "@/db/schema";
+import { posts, accounts } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { reviewDraft, recordApprovedDraft } from "@/lib/linguistic-guardrail";
 import { logger } from "@/lib/logger";
+import { getActiveAccountId } from "@/lib/account";
 
 type PostFormat = "story_arc" | "hot_take" | "short_insight" | "essay";
 
@@ -33,20 +36,32 @@ function getFormatInstruction(format: PostFormat): string {
 
 async function callClaude(
   voiceProfileText: string,
+  voiceAddendum: string | null,   // per-account addendum from accounts.voice_profile_addendum
   systemInstruction: string,
   userMessage: string
 ): Promise<string> {
+  const systemBlocks: Anthropic.TextBlockParam[] = [
+    {
+      type: "text",
+      text: voiceProfileText,
+      cache_control: { type: "ephemeral" }, // Block 1: stable base voice profile
+    },
+  ];
+
+  if (voiceAddendum && voiceAddendum.length > 50) {
+    systemBlocks.push({
+      type: "text",
+      text: `Learned style corrections for this account:\n${voiceAddendum}`,
+      cache_control: { type: "ephemeral" }, // Block 2: per-account addendum (may miss 2048-token min — non-fatal)
+    });
+  }
+
+  systemBlocks.push({ type: "text", text: systemInstruction }); // Block 3: no cache
+
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 1024,
-    system: [
-      {
-        type: "text",
-        text: voiceProfileText,
-        cache_control: { type: "ephemeral" },
-      },
-      { type: "text", text: systemInstruction },
-    ],
+    system: systemBlocks,
     messages: [{ role: "user", content: userMessage }],
   });
   const first = response.content[0];
@@ -138,12 +153,20 @@ export async function generateDraft(
   if (roughIdea.length > 2000) throw new Error("Rough idea too long (max 2000 characters)");
   if (!VALID_FORMATS.includes(format)) throw new Error("Invalid format");
 
-  const voiceProfileText = await getVoiceProfile();
+  const accountId = await getActiveAccountId();
+  const voiceProfileText = await getVoiceProfileForAccount(accountId);
+  const [accountRow] = await db
+    .select({ voiceProfileAddendum: accounts.voiceProfileAddendum })
+    .from(accounts)
+    .where(eq(accounts.id, accountId))
+    .limit(1);
+  const voiceAddendum = accountRow?.voiceProfileAddendum ?? null;
   const formatInstruction = getFormatInstruction(format);
 
   // --- 1. Initial draft ---
   let draftText = await callClaude(
     voiceProfileText,
+    voiceAddendum,
     DRAFT_SYSTEM_PROMPT,
     `${formatInstruction}\n\nRough idea: ${roughIdea}`
   );
@@ -158,6 +181,7 @@ export async function generateDraft(
     if (!regexReview.approved && regexReview.repairPrompt) {
       draftText = await callClaude(
         voiceProfileText,
+        voiceAddendum,
         REPAIR_SYSTEM_PROMPT,
         regexReview.repairPrompt
       );
@@ -173,6 +197,7 @@ export async function generateDraft(
       logger.warn("Semantic guardrail triggered repair", { violations });
       draftText = await callClaude(
         voiceProfileText,
+        voiceAddendum,
         REPAIR_SYSTEM_PROMPT,
         `Fix every violation listed below. Keep the core argument and Houtan's voice intact.\n\n${violations}\n\nDraft to fix:\n${draftText}`
       );
@@ -201,6 +226,7 @@ export async function generateDraft(
     roughIdea: roughIdea.trim(),
     draftText,
     status: "draft",
+    accountId,           // account-scoped post (Phase 6)
     createdAt: new Date(),
   });
 

@@ -2,6 +2,7 @@
 export const maxDuration = 60;
 
 import { getDrafts, getTopicAreas, getRecentPostTopics, getLatestDigest, getPublishedPostCount } from "@/db/queries";
+import { getActiveAccountId } from "@/lib/account";
 import { generateAngles } from "@/app/actions/generate-angles";
 import { generateDigest } from "@/app/actions/generate-digest";
 import HomeClient from "./_components/HomeClient";
@@ -25,8 +26,9 @@ function selectWeightedTopic(
 }
 
 export default async function Home() {
+  const accountId = await getActiveAccountId();
   const [drafts, topicAreas, recentTopicIds, latestDigest, publishedPostCount] = await Promise.all([
-    getDrafts().catch(() => [] as Awaited<ReturnType<typeof getDrafts>>),
+    getDrafts(accountId).catch(() => [] as Awaited<ReturnType<typeof getDrafts>>),
     getTopicAreas().catch(() => [] as Awaited<ReturnType<typeof getTopicAreas>>),
     getRecentPostTopics(14).catch(() => [] as number[]),
     getLatestDigest().catch(() => null),
