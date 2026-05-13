@@ -74,7 +74,8 @@ export async function generateAngles(
   }
 
   try {
-    const angles = JSON.parse(firstContent.text);
+    const raw = firstContent.text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    const angles = JSON.parse(raw);
     if (Array.isArray(angles) && angles.length === 3 && angles.every((a) => typeof a === "string")) {
       return angles;
     }

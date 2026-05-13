@@ -5,9 +5,17 @@ import { useSearchParams } from "next/navigation";
 import { generateDraft } from "@/app/actions/generate-draft";
 import { autoTagDraft, type AutoTagResult } from "@/app/actions/auto-tag";
 import TagRow from "./TagRow";
+import MetricsSection from "./MetricsSection";
 import type { DraftSummary } from "./HistorySidebar";
 
 type PostFormat = "story_arc" | "hot_take" | "short_insight" | "essay";
+
+const FORMAT_OPTIONS: { value: PostFormat; label: string; description: string }[] = [
+  { value: "short_insight", label: "Short insight", description: "Punchy, one idea" },
+  { value: "hot_take", label: "Hot take", description: "Provocative angle" },
+  { value: "story_arc", label: "Story arc", description: "Narrative with a turn" },
+  { value: "essay", label: "Essay", description: "Longer, reasoned" },
+];
 
 interface DraftPanelProps {
   topicAreas?: Array<{ id: number; name: string }>;
@@ -29,7 +37,6 @@ export default function DraftPanel({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [autoTags, setAutoTags] = useState<AutoTagResult | null>(null);
-  // Incrementing key forces TagRow to remount when auto-tags arrive
   const [tagRowKey, setTagRowKey] = useState(0);
 
   // Load a past draft from the sidebar
@@ -75,7 +82,6 @@ export default function DraftPanel({
       setPostId(result.postId);
       setCopied(false);
 
-      // Auto-tag in background — draft is already visible, tags fill in after
       setIsTagging(true);
       autoTagDraft(result.postId, result.draftText, topicAreas)
         .then((tags) => {
@@ -98,7 +104,6 @@ export default function DraftPanel({
     setTimeout(() => setCopied(false), 2000);
   }
 
-  // Resolve which tags to show: loaded draft tags > auto-tags > nothing
   const resolvedTags = loadedDraft
     ? {
         hookType: loadedDraft.hookType,
@@ -115,62 +120,72 @@ export default function DraftPanel({
       }
     : undefined;
 
+  const isPublished = loadedDraft?.status === "published";
+
   return (
     <div className="flex flex-col gap-4">
       <textarea
         value={roughIdea}
         onChange={(e) => setRoughIdea(e.target.value)}
         placeholder="Drop a rough idea..."
-        rows={5}
+        rows={4}
         maxLength={2000}
-        className="w-full border border-gray-300 rounded-md p-3 resize-y text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full border border-gray-200 dark:border-gray-700 rounded-lg p-3 resize-y text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-transparent dark:text-gray-200 dark:placeholder-gray-500"
       />
 
-      <div className="flex items-center gap-3">
-        <select
-          value={format}
-          onChange={(e) => setFormat(e.target.value as PostFormat)}
-          className="border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="story_arc">Story arc</option>
-          <option value="hot_take">Hot take</option>
-          <option value="short_insight">Short insight</option>
-          <option value="essay">Essay</option>
-        </select>
+      {/* Format picker + Generate */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {FORMAT_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setFormat(opt.value)}
+            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+              format === opt.value
+                ? "bg-gray-900 dark:bg-gray-100 border-gray-900 dark:border-gray-100 text-white dark:text-gray-900"
+                : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500"
+            }`}
+            title={opt.description}
+          >
+            {opt.label}
+          </button>
+        ))}
 
         <button
           onClick={handleGenerate}
           disabled={isLoading || roughIdea.trim().length === 0}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+          className="ml-auto px-5 py-1.5 bg-blue-600 text-white text-sm rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
         >
-          {isLoading ? "Generating..." : "Generate draft"}
+          {isLoading ? "Generating…" : "Generate"}
         </button>
       </div>
 
       {error && <p className="text-red-600 text-sm">{error}</p>}
 
       {draft !== null && (
-        <div className="mt-2">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Generated draft
-            </h2>
-            <button
-              onClick={handleCopy}
-              className="text-xs px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300 transition-colors"
-            >
-              {copied ? "Copied!" : "Copy"}
-            </button>
-          </div>
-          <div
-            data-post-id={postId}
-            className="border border-gray-200 dark:border-gray-700 rounded-md p-4 bg-white dark:bg-gray-900"
-          >
-            <p className="text-sm whitespace-pre-wrap leading-relaxed text-gray-900 dark:text-gray-100">
+        <div className="mt-1 flex flex-col gap-2">
+          {/* Draft output — distinct visual register */}
+          <div className="rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-5">
+            <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-gray-900 dark:text-gray-100">
               {draft}
             </p>
           </div>
 
+          {/* Copy button */}
+          <div className="flex justify-end">
+            <button
+              onClick={handleCopy}
+              className={`px-4 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                copied
+                  ? "bg-green-600 text-white"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
+            >
+              {copied ? "Copied!" : "Copy to clipboard"}
+            </button>
+          </div>
+
+          {/* Tag row */}
           {postId && (
             <div className="relative">
               <TagRow
@@ -183,6 +198,11 @@ export default function DraftPanel({
                 <p className="text-xs text-gray-400 mt-1">Classifying tags…</p>
               )}
             </div>
+          )}
+
+          {/* Metrics — only for published posts loaded from sidebar */}
+          {isPublished && loadedDraft && (
+            <MetricsSection draft={loadedDraft} />
           )}
         </div>
       )}

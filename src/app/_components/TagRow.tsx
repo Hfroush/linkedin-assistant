@@ -3,14 +3,24 @@
 import { useState } from "react";
 import { updateTags } from "@/app/actions/update-tags";
 
-type HookType =
-  | "question"
-  | "stat"
-  | "story"
-  | "hot_take"
-  | "confession"
-  | "contrast";
+type HookType = "question" | "stat" | "story" | "hot_take" | "confession" | "contrast";
 type NarrativeStructure = "hook_insight" | "story_arc" | "essay" | "list";
+
+const HOOK_TYPES: { value: HookType; label: string }[] = [
+  { value: "question", label: "Question" },
+  { value: "stat", label: "Statistic" },
+  { value: "story", label: "Story opener" },
+  { value: "hot_take", label: "Hot take" },
+  { value: "confession", label: "Confession" },
+  { value: "contrast", label: "Contrast" },
+];
+
+const NARRATIVE_STRUCTURES: { value: NarrativeStructure; label: string }[] = [
+  { value: "hook_insight", label: "Hook + insight" },
+  { value: "story_arc", label: "Story arc" },
+  { value: "essay", label: "Essay" },
+  { value: "list", label: "List" },
+];
 
 interface TagRowProps {
   postId: string;
@@ -24,120 +34,130 @@ interface TagRowProps {
   };
 }
 
-export default function TagRow({
-  postId,
-  topicAreas,
-  initialTags,
-}: TagRowProps) {
-  const [hookType, setHookType] = useState(initialTags?.hookType ?? "");
-  const [narrativeStructure, setNarrativeStructure] = useState(
-    initialTags?.narrativeStructure ?? ""
+function PillGroup<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T | "";
+  onChange: (v: T | "") => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</span>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((opt) => {
+          const selected = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(selected ? "" : opt.value)}
+              className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                selected
+                  ? "bg-blue-600 border-blue-600 text-white"
+                  : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-blue-300 hover:text-blue-600 dark:hover:text-blue-400"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
-  const [topicId, setTopicId] = useState(
-    initialTags?.topicId?.toString() ?? ""
+}
+
+export default function TagRow({ postId, topicAreas, initialTags }: TagRowProps) {
+  const [hookType, setHookType] = useState<HookType | "">(
+    (initialTags?.hookType as HookType) ?? ""
   );
+  const [narrativeStructure, setNarrativeStructure] = useState<NarrativeStructure | "">(
+    (initialTags?.narrativeStructure as NarrativeStructure) ?? ""
+  );
+  const [topicId, setTopicId] = useState(initialTags?.topicId?.toString() ?? "");
   const [scheduledTime, setScheduledTime] = useState("");
   const [status, setStatus] = useState<"draft" | "published">(
     initialTags?.status ?? "draft"
   );
 
   return (
-    <div className="mt-3 flex flex-wrap gap-3 items-end border-t border-gray-100 pt-3">
-      {/* Hook type */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-gray-500">Hook type</label>
-        <select
-          value={hookType}
-          onChange={(e) => {
-            const val = e.target.value as HookType | "";
-            setHookType(val);
-            updateTags(postId, { hookType: val || null });
-          }}
-          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
-        >
-          <option value="">-- Hook type</option>
-          <option value="question">Question</option>
-          <option value="stat">Statistic</option>
-          <option value="story">Story opener</option>
-          <option value="hot_take">Hot take</option>
-          <option value="confession">Confession</option>
-          <option value="contrast">Contrast</option>
-        </select>
-      </div>
+    <div className="mt-4 flex flex-col gap-4 border-t border-gray-100 dark:border-gray-800 pt-4">
+      <PillGroup
+        label="Hook type"
+        options={HOOK_TYPES}
+        value={hookType}
+        onChange={(v) => {
+          setHookType(v as HookType | "");
+          updateTags(postId, { hookType: v || null });
+        }}
+      />
 
-      {/* Narrative structure */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-gray-500">Structure</label>
-        <select
-          value={narrativeStructure}
-          onChange={(e) => {
-            const val = e.target.value as NarrativeStructure | "";
-            setNarrativeStructure(val);
-            updateTags(postId, { narrativeStructure: val || null });
-          }}
-          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
-        >
-          <option value="">-- Structure</option>
-          <option value="hook_insight">Hook + insight</option>
-          <option value="story_arc">Story arc</option>
-          <option value="essay">Essay</option>
-          <option value="list">List</option>
-        </select>
-      </div>
+      <PillGroup
+        label="Structure"
+        options={NARRATIVE_STRUCTURES}
+        value={narrativeStructure}
+        onChange={(v) => {
+          setNarrativeStructure(v as NarrativeStructure | "");
+          updateTags(postId, { narrativeStructure: v || null });
+        }}
+      />
 
-      {/* Topic area */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-gray-500">Topic</label>
-        <select
-          value={topicId}
-          onChange={(e) => {
-            const val = e.target.value;
-            setTopicId(val);
-            updateTags(postId, { topicId: val ? parseInt(val, 10) : null });
-          }}
-          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
-        >
-          <option value="">-- Topic area</option>
-          {topicAreas.map((t) => (
-            <option key={t.id} value={t.id.toString()}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Topic</label>
+          <select
+            value={topicId}
+            onChange={(e) => {
+              const val = e.target.value;
+              setTopicId(val);
+              updateTags(postId, { topicId: val ? parseInt(val, 10) : null });
+            }}
+            className="border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 dark:bg-transparent dark:text-gray-300"
+          >
+            <option value="">— Topic area</option>
+            {topicAreas.map((t) => (
+              <option key={t.id} value={t.id.toString()}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      {/* Scheduled time */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-gray-500">Schedule</label>
-        <input
-          type="datetime-local"
-          value={scheduledTime}
-          onChange={(e) => {
-            const val = e.target.value;
-            setScheduledTime(val);
-            updateTags(postId, {
-              scheduledTime: val ? new Date(val) : null,
-            });
-          }}
-          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
-        />
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Schedule</label>
+          <input
+            type="datetime-local"
+            value={scheduledTime}
+            onChange={(e) => {
+              const val = e.target.value;
+              setScheduledTime(val);
+              updateTags(postId, { scheduledTime: val ? new Date(val) : null });
+            }}
+            className="border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 dark:bg-transparent dark:text-gray-300"
+          />
+        </div>
 
-      {/* Status */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-gray-500">Status</label>
-        <select
-          value={status}
-          onChange={(e) => {
-            const val = e.target.value as "draft" | "published";
-            setStatus(val);
-            updateTags(postId, { status: val });
-          }}
-          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
-        >
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-        </select>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Status</label>
+          {status === "draft" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setStatus("published");
+                updateTags(postId, { status: "published" });
+              }}
+              className="px-4 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            >
+              Mark as published
+            </button>
+          ) : (
+            <span className="text-sm text-green-600 font-medium py-1.5">✓ Published</span>
+          )}
+        </div>
       </div>
     </div>
   );

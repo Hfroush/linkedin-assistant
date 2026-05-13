@@ -30,9 +30,12 @@ export type ApifyResult =
 export async function pullLinkedInPostMetrics(
   postUrl: string
 ): Promise<ApifyResult> {
+  // Strip tracking params — the actor's URL parser chokes on ?utm_source=... etc.
+  const cleanUrl = postUrl.split("?")[0].replace(/\/$/, "");
+
   const run = await apifyClient
     .actor(ACTOR_ID)
-    .call({ postUrl }, { waitSecs: 55 });
+    .call({ postUrl: cleanUrl, li_at: process.env.LINKEDIN_LI_AT, jsessionid: process.env.LINKEDIN_JSESSIONID }, { waitSecs: 55 });
 
   if (run.status !== "SUCCEEDED") {
     return { ok: false, reason: "timeout" };

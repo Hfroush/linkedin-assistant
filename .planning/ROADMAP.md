@@ -15,8 +15,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - Database schema, DOCX parsing, voice profile stored and ready for injection *(Completed: 2026-05-04)*
 - [x] **Phase 2: Core Drafting** - LLM drafting in Houtan's voice with 5-dimension tagging and clipboard publishing *(Completed: 2026-05-04)*
 - [x] **Phase 3: Content Discovery** - RSS feed polling, topic prompt engine, inspiration feed, bookmarks *(Completed: 2026-05-05)*
-- [ ] **Phase 4: Performance Tracking** - Manual engagement entry, per-post dashboard, tag analytics, weekly digest
-- [ ] **Phase 5: Metrics Automation** - LinkedIn OAuth metrics pull (conditional on scope approval)
+- [x] **Phase 4: Performance Tracking** - Manual engagement entry, per-post dashboard, tag analytics, weekly digest *(Completed: 2026-05-05)*
+- [x] **Phase 5: Metrics Automation** - Apify-based LinkedIn metrics pull (reactions, comments, reposts) *(Completed: 2026-05-07)*
 
 ## Phase Details
 
@@ -89,18 +89,42 @@ Plans:
 - [ ] 04-04-PLAN.md — /stats route (aggregate summary cards + per-post table) + NavBar Stats link + ReauthBanner placeholder (Wave 3)
 
 ### Phase 5: Metrics Automation
-**Goal**: If LinkedIn approves the `r_member_social` scope, engagement data is pulled automatically — manual entry becomes optional rather than required
+**Goal**: Automatically pull public LinkedIn engagement signals (reactions, comments, reposts) for published posts using Apify — manual entry for these three fields becomes optional
 **Depends on**: Phase 4
 **Requirements**: AUTO-01
+**Note**: Implementation uses Apify scraping (public signals only) rather than LinkedIn OAuth. LinkedIn `r_member_social` scope was deprioritised — approval timeline is unknown and Apify covers the practical need. Impressions remain manual-entry only (not publicly visible without LinkedIn credentials).
 **Success Criteria** (what must be TRUE):
-  1. If `r_member_social` scope is granted, the app automatically pulls reactions, comments, reposts, and impressions for published posts without any manual entry by Houtan
+  1. Houtan can paste a LinkedIn post URL into the metrics row and click Refresh to pull reactions, comments, and reposts automatically via Apify — without entering those three values manually
   2. Automatically pulled metrics populate the same per-post dashboard and tag analytics as manually entered metrics — the rest of the app is unaffected by which path delivered the data
-**Plans**: TBD
+  3. Impressions remain manual-entry only; engagementRate is recalculated automatically after a pull if impressions have been entered
+  4. If Apify returns no data or times out, existing manually-entered values are preserved (non-destructive)
+**Plans**: 2 plans
+
+### Phase 6: Multi-Account & Learning Engine
+**Goal**: The app learns from every post — from what Houtan edits, what he chooses to publish, and what performs — across three distinct LinkedIn accounts (Personal, UCL EdTech Labs, Startup Labs), each with its own voice profile and scoped history, sharing cross-account topic performance signal
+**Depends on**: Phase 5
+**Requirements**: ACCT-01, ACCT-02, ACCT-03, ACCT-04, LEARN-01, LEARN-02, LEARN-03, LEARN-04, LEARN-05, LEARN-06, LEARN-07
+**Spec**: See `.planning/v2-learning-engine-spec.md`
+**Success Criteria** (what must be TRUE):
+  1. User can switch between Personal, UCL EdTech Labs, and Startup Labs accounts — all draft history, voice profiles, and performance data are scoped to the selected account
+  2. After publishing a post, user can log the final published version (paste or LinkedIn URL); the system extracts structured edit patterns and stores them in voice_corrections
+  3. After 5+ logged posts for an account, the voice profile addendum is synthesized and injected at generation time — drafts visibly improve in alignment with the account's edit history
+  4. Selection state (published / regenerated / abandoned) is tracked for every draft and feeds the cross-account topic performance matrix
+  5. Weekly digest is account-scoped and includes edit learning status and cross-account topic trend signal
+**Plans**: 6 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Schema migration: accounts table + 3-account seed, voice_corrections, topic_performance, alter posts (account_id, selection_state, published_text)
+- [ ] 06-02-PLAN.md — Account switcher UI + per-account draft history scoping + account-aware generation prompt
+- [ ] 06-03-PLAN.md — Edit capture flow: "log published version" paste field + Apify URL pull (bonus) + voice_corrections insert
+- [ ] 06-04-PLAN.md — LLM edit analysis job: EditPattern extraction + re-synthesis trigger + voice_profile_addendum storage
+- [ ] 06-05-PLAN.md — Topic performance matrix: update on post log + cross-account aggregate + generation soft-signal integration
+- [ ] 06-06-PLAN.md — Digest + stats: account-scoped digest + edit learning indicator + per-account performance baseline
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -108,4 +132,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Core Drafting | 4/4 | Complete | 2026-05-04 |
 | 3. Content Discovery | 4/4 | Complete | 2026-05-05 |
 | 4. Performance Tracking | 4/4 | Complete | 2026-05-05 |
-| 5. Metrics Automation | 0/TBD | Not started | - |
+| 5. Metrics Automation | 2/2 | Complete | 2026-05-07 |
+| 6. Multi-Account & Learning Engine | 0/6 | Planning | — |

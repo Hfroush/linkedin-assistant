@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
+milestone: v2.0
 milestone_name: milestone
-status: phase_complete
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-05-05T00:00:00.000Z"
-last_activity: 2026-05-05
+status: executing
+stopped_at: Phase 6 planning complete — spec written, requirements and roadmap updated
+last_updated: "2026-05-12T16:09:58.646Z"
+last_activity: 2026-05-12 -- Phase 6 planning complete
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 4
-  total_plans: 16
-  completed_plans: 16
-  percent: 80
+  total_plans: 20
+  completed_plans: 18
+  percent: 90
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-05-01)
 
 ## Current Position
 
-Phase: 4 of 5 complete (Performance Tracking — DONE)
-Next: Phase 5 — Metrics Automation
-Status: Phase 4 complete, ready to plan Phase 5
-Last activity: 2026-05-05
+Phase: 5 of 6 complete. Phase 6 (Multi-Account & Learning Engine) is planned but not yet executed.
+Next: `/gsd-execute-phase 6` — start with 06-01-PLAN.md (schema migration)
+Status: Ready to execute
+Last activity: 2026-05-12 -- Phase 6 planning complete
 
-Progress: [████████░░] 80%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -84,11 +84,12 @@ None yet.
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
 | v2 | LinkedIn OAuth for direct publishing (PUB2-01, PUB2-02, PUB2-03) | Out of scope | Initialization |
-| v2 | Feedback loop / learning engine (FEED-01, FEED-02, FEED-03) | Out of scope | Initialization |
+| v2 | FEED-01/02/03 — superseded by LEARN-* and ACCT-* in Phase 6 | Superseded | 2026-05-12 |
 | v2 | LinkedIn scraping as supplementary discovery (SCRP-01) | Out of scope | Initialization |
 
 ## Session Continuity
 
-Last session: 2026-05-05
-Stopped at: Phase 4 complete — all 4 plans executed and merged
-Resume file: .planning/phases/05-metrics-automation/ (not yet created)
+Last session: 2026-05-12
+Stopped at: Phase 6 planning complete — spec written, requirements and roadmap updated
+Next session: `/gsd-execute-phase 6` — 06-01-PLAN.md (schema migration) is the first plan
+Open questions before building: voice profiles for UCL EdTech Labs and Startup Labs accounts (writing samples or structured interview?); abandoned-draft threshold (suggest 7 days); addendum conflict handling

@@ -10,23 +10,19 @@ interface HomeClientProps {
   drafts: DraftSummary[];
   topicAreas: Array<{ id: number; name: string }>;
   topicName: string | null;
-  angles: string[];
+  topicDescription: string | null;
 }
 
-export default function HomeClient({ drafts, topicAreas, topicName, angles }: HomeClientProps) {
+export default function HomeClient({ drafts, topicAreas, topicName, topicDescription }: HomeClientProps) {
   const [loadedDraft, setLoadedDraft] = useState<DraftSummary | null>(null);
-  const [seedIdea, setSeedIdea] = useState<string | null>(null);
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-6">
-      {topicName && (
+      {topicName && topicDescription && (
         <TopicPromptCard
           topicName={topicName}
-          angles={angles}
-          onAngleSelect={(angle) => {
-            setSeedIdea(angle);
-            setLoadedDraft(null);
-          }}
+          topicDescription={topicDescription}
+          onDraftSelect={(draft) => setLoadedDraft(draft)}
         />
       )}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
@@ -36,7 +32,7 @@ export default function HomeClient({ drafts, topicAreas, topicName, angles }: Ho
             <DraftPanel
               topicAreas={topicAreas}
               loadedDraft={loadedDraft}
-              seedIdea={seedIdea}
+              seedIdea={null}
             />
           </Suspense>
         </section>
