@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AccountSwitcher from "./AccountSwitcher";
+import type { AccountSlug } from "@/lib/account";
 
-export default function NavBar() {
+export default function NavBar({ activeSlug }: { activeSlug: AccountSlug }) {
   const pathname = usePathname();
 
   return (
@@ -33,6 +35,9 @@ export default function NavBar() {
         >
           Stats
         </Link>
+        <div className="ml-auto">
+          <AccountSwitcher activeSlug={activeSlug} />
+        </div>
       </div>
     </nav>
   );

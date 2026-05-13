@@ -2,15 +2,17 @@
 
 import { anthropic } from "@/lib/anthropic";
 import { getVoiceProfile } from "@/lib/voice-profile";
-import { getPublishedPostsWithMetrics } from "@/db/queries";
+import { getPublishedPostsWithMetrics, getAccountLearningStatus } from "@/db/queries";
+import { getActiveAccountId } from "@/lib/account";
 import { db } from "@/db/client";
 import { weeklyDigests } from "@/db/schema";
 import { randomUUID } from "crypto";
 
 const DIGEST_MIN_POSTS_WITH_METRICS = 3;
 
-export async function generateDigest(): Promise<string> {
-  const posts = await getPublishedPostsWithMetrics();
+export async function generateDigest(accountId?: number): Promise<string> {
+  const resolvedAccountId = accountId ?? (await getActiveAccountId());
+  const posts = await getPublishedPostsWithMetrics(resolvedAccountId);
 
   // Only include posts with impressions entered (real metrics data)
   const postsWithMetrics = posts.filter(
@@ -56,6 +58,15 @@ export async function generateDigest(): Promise<string> {
     `Top performing tag combos: ${topCombos.length > 0 ? topCombos.join("; ") : "not enough data"}`,
   ].join("\n");
 
+  // Fetch edit learning status for this account
+  const learningStatus = await getAccountLearningStatus(resolvedAccountId);
+  const learningSection =
+    learningStatus.correctionsCount === 0
+      ? "No learning data yet — this account has not had any published versions logged."
+      : learningStatus.hasAddendum
+        ? `Voice profile last synthesised from ${learningStatus.correctionsCount} published corrections. Last synthesis: ${learningStatus.lastResynthAt?.toLocaleDateString() ?? "unknown"}.`
+        : `${learningStatus.correctionsCount} correction(s) captured — voice profile re-synthesis not yet triggered (threshold: 5).`;
+
   // Call Claude with cached voice profile (D-08: same pattern as generate-draft.ts)
   const voiceProfileText = await getVoiceProfile();
 
@@ -76,7 +87,7 @@ export async function generateDigest(): Promise<string> {
     messages: [
       {
         role: "user",
-        content: `Here is this week's performance data:\n\n${dataSummary}\n\nWrite the weekly digest.`,
+        content: `Here is this week's performance data:\n\n${dataSummary}\n\nEdit Learning Status: ${learningSection}\n\nWrite the weekly digest.`,
       },
     ],
   });
@@ -95,6 +106,7 @@ export async function generateDigest(): Promise<string> {
       aboveAverageCount: aboveAverage.length,
       underperformingCount: belowAverage.length,
     }),
+    accountId: resolvedAccountId,
     createdAt: new Date(),
   });
 

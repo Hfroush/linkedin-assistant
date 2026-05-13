@@ -11,9 +11,10 @@ interface HomeClientProps {
   topicAreas: Array<{ id: number; name: string }>;
   topicName: string | null;
   topicDescription: string | null;
+  accountId?: number;
 }
 
-export default function HomeClient({ drafts, topicAreas, topicName, topicDescription }: HomeClientProps) {
+export default function HomeClient({ drafts, topicAreas, topicName, topicDescription, accountId = 1 }: HomeClientProps) {
   const [loadedDraft, setLoadedDraft] = useState<DraftSummary | null>(null);
 
   return (
@@ -33,6 +34,7 @@ export default function HomeClient({ drafts, topicAreas, topicName, topicDescrip
               topicAreas={topicAreas}
               loadedDraft={loadedDraft}
               seedIdea={null}
+              accountId={accountId}
             />
           </Suspense>
         </section>

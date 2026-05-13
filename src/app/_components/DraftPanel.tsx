@@ -6,6 +6,7 @@ import { generateDraft } from "@/app/actions/generate-draft";
 import { autoTagDraft, type AutoTagResult } from "@/app/actions/auto-tag";
 import TagRow from "./TagRow";
 import MetricsSection from "./MetricsSection";
+import LogPublishedVersionForm from "./LogPublishedVersionForm";
 import type { DraftSummary } from "./HistorySidebar";
 
 type PostFormat = "story_arc" | "hot_take" | "short_insight" | "essay";
@@ -21,12 +22,14 @@ interface DraftPanelProps {
   topicAreas?: Array<{ id: number; name: string }>;
   loadedDraft?: DraftSummary | null;
   seedIdea?: string | null;
+  accountId?: number;
 }
 
 export default function DraftPanel({
   topicAreas = [],
   loadedDraft,
   seedIdea,
+  accountId = 1,
 }: DraftPanelProps) {
   const [roughIdea, setRoughIdea] = useState("");
   const [format, setFormat] = useState<PostFormat>("short_insight");
@@ -197,6 +200,7 @@ export default function DraftPanel({
               {isTagging && (
                 <p className="text-xs text-gray-400 mt-1">Classifying tags…</p>
               )}
+              <LogPublishedVersionForm postId={postId} accountId={accountId} />
             </div>
           )}
 

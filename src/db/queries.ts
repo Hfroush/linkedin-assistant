@@ -1,13 +1,16 @@
-import { desc, gte, eq, gt, isNull, or, sql, and, isNotNull } from "drizzle-orm";
+import { desc, gte, eq, gt, isNull, or, sql, and, isNotNull, lt } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   posts,
   topicAreas,
   trendingItems,
   weeklyDigests,
+  voiceCorrections,
+  accounts,
   type Post,
   type TopicArea,
   type TrendingItem,
+  type Account,
 } from "@/db/schema";
 
 /**
@@ -33,7 +36,20 @@ type DraftRow = {
   metricsPulledAt: Date | null;
 };
 
-export async function getDrafts(): Promise<DraftRow[]> {
+export async function getDrafts(accountId: number): Promise<DraftRow[]> {
+  // Lazy abandoned detection: mark THIS account's drafts older than 7 days with no action as abandoned
+  await db
+    .update(posts)
+    .set({ selectionState: "abandoned" })
+    .where(
+      and(
+        eq(posts.accountId, accountId),
+        isNull(posts.selectionState),
+        eq(posts.status, "draft"),
+        lt(posts.createdAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+      )
+    );
+
   const rows = await db
     .select({
       id: posts.id,
@@ -54,6 +70,7 @@ export async function getDrafts(): Promise<DraftRow[]> {
       metricsPulledAt: posts.metricsPulledAt,
     })
     .from(posts)
+    .where(eq(posts.accountId, accountId))
     .orderBy(desc(posts.createdAt));
   return rows as DraftRow[];
 }
@@ -116,11 +133,16 @@ export async function getTrendingItems(): Promise<
 
 /**
  * Returns all published posts with full metric columns.
+ * Accepts an optional accountId to scope results to a specific account.
  * NOTE: "published" here means status = 'published' — not necessarily that impressions have
  * been entered. Use getTagDimensionStats() for aggregations that require real metrics data
  * (it filters to impressions IS NOT NULL internally).
  */
-export async function getPublishedPostsWithMetrics() {
+export async function getPublishedPostsWithMetrics(accountId?: number) {
+  const conditions = [eq(posts.status, "published")];
+  if (accountId !== undefined) {
+    conditions.push(eq(posts.accountId, accountId) as any);
+  }
   return db
     .select({
       id: posts.id,
@@ -142,7 +164,7 @@ export async function getPublishedPostsWithMetrics() {
       createdAt: posts.createdAt,
     })
     .from(posts)
-    .where(eq(posts.status, "published"))
+    .where(and(...conditions))
     .orderBy(desc(posts.createdAt));
 }
 
@@ -152,11 +174,15 @@ export async function getPublishedPostsWithMetrics() {
  * Note: this count includes posts that may not yet have impressions entered.
  * For metrics-ready posts specifically, see getTagDimensionStats().totalPostsWithMetrics.
  */
-export async function getPublishedPostCount() {
+export async function getPublishedPostCount(accountId?: number) {
+  const conditions = [eq(posts.status, "published")];
+  if (accountId !== undefined) {
+    conditions.push(eq(posts.accountId, accountId) as any);
+  }
   const result = await db
     .select({ count: sql<number>`count(*)` })
     .from(posts)
-    .where(eq(posts.status, "published"));
+    .where(and(...conditions));
   return result[0]?.count ?? 0;
 }
 
@@ -164,9 +190,18 @@ export async function getPublishedPostCount() {
  * Computes best performer per tag dimension using JavaScript-side aggregation.
  * Only posts with impressions AND engagementRate entered are included — sparse rows
  * (no impressions) are excluded so they don't dilute or distort averages.
+ * Accepts an optional accountId to scope results to a specific account.
  */
-export async function getTagDimensionStats() {
+export async function getTagDimensionStats(accountId?: number) {
   // Load all published posts that have impressions entered (exclude sparse rows)
+  const conditions = [
+    eq(posts.status, "published"),
+    isNotNull(posts.impressions),
+    isNotNull(posts.engagementRate),
+  ];
+  if (accountId !== undefined) {
+    conditions.push(eq(posts.accountId, accountId) as any);
+  }
   const publishedPosts = await db
     .select({
       hookType: posts.hookType,
@@ -176,13 +211,7 @@ export async function getTagDimensionStats() {
       engagementRate: posts.engagementRate,
     })
     .from(posts)
-    .where(
-      and(
-        eq(posts.status, "published"),
-        isNotNull(posts.impressions),
-        isNotNull(posts.engagementRate)
-      )
-    );
+    .where(and(...conditions));
 
   // Helper: group by string key and average engagementRate
   function bestInDimension<T extends string | number | null>(
@@ -255,13 +284,68 @@ export async function getTagDimensionStats() {
 
 /**
  * Returns the most recently created weeklyDigests row, or null if none exist.
+ * Accepts an optional accountId to scope results to a specific account.
  * Used by home page.tsx to determine whether to show or regenerate the digest card (D-06, D-07).
  */
-export async function getLatestDigest() {
+export async function getLatestDigest(accountId?: number) {
+  if (accountId !== undefined) {
+    const result = await db
+      .select()
+      .from(weeklyDigests)
+      .where(eq(weeklyDigests.accountId, accountId))
+      .orderBy(desc(weeklyDigests.createdAt))
+      .limit(1);
+    return result[0] ?? null;
+  }
   const result = await db
     .select()
     .from(weeklyDigests)
     .orderBy(desc(weeklyDigests.createdAt))
     .limit(1);
   return result[0] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// PHASE 6 — account learning status
+// ---------------------------------------------------------------------------
+
+export interface AccountLearningStatus {
+  correctionsCount: number;
+  lastResynthAt: Date | null;
+  hasAddendum: boolean;
+  displayName: string;
+}
+
+/**
+ * Returns edit learning status for a given account.
+ * Used by the stats page to show "Voice profile last updated N posts ago" or "No learning data yet".
+ */
+export async function getAccountLearningStatus(
+  accountId: number
+): Promise<AccountLearningStatus> {
+  // Count corrections for this account
+  const countResult = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(voiceCorrections)
+    .where(eq(voiceCorrections.accountId, accountId));
+
+  const correctionsCount = countResult[0]?.count ?? 0;
+
+  // Get account metadata
+  const [accountRow] = await db
+    .select({
+      displayName: accounts.displayName,
+      lastResynthAt: accounts.lastResynthAt,
+      voiceProfileAddendum: accounts.voiceProfileAddendum,
+    })
+    .from(accounts)
+    .where(eq(accounts.id, accountId))
+    .limit(1);
+
+  return {
+    correctionsCount,
+    lastResynthAt: accountRow?.lastResynthAt ?? null,
+    hasAddendum: !!(accountRow?.voiceProfileAddendum && accountRow.voiceProfileAddendum.length > 0),
+    displayName: accountRow?.displayName ?? "Unknown",
+  };
 }
