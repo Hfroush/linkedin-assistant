@@ -8,6 +8,7 @@ export type DraftSummary = {
   id: string;
   roughIdea: string | null;
   draftText: string | null;
+  finalText: string | null;
   createdAt: Date;
   hookType: string | null;
   narrativeStructure: string | null;

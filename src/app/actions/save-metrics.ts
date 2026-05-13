@@ -1,9 +1,18 @@
 "use server";
 
 import { eq, and } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db/client";
 import { posts } from "@/db/schema";
 import { calculateEngagementRate } from "@/lib/metrics";
+
+const metricsSchema = z.object({
+  postId: z.string().uuid(),
+  reactions: z.number().int().min(0).max(1_000_000),
+  comments: z.number().int().min(0).max(1_000_000),
+  reposts: z.number().int().min(0).max(1_000_000),
+  impressions: z.number().int().min(0).max(100_000_000),
+});
 
 export async function saveMetrics({
   postId,
@@ -18,10 +27,22 @@ export async function saveMetrics({
   reposts: number;
   impressions: number;
 }): Promise<{ success: boolean; engagementRate: number | null }> {
+  const parsed = metricsSchema.safeParse({
+    postId,
+    reactions,
+    comments,
+    reposts,
+    impressions,
+  });
+
+  if (!parsed.success) {
+    return { success: false, engagementRate: null };
+  }
+
   // Input validation: treat NaN or negative values as invalid (review feedback)
   let engagementRate: number | null;
   try {
-    engagementRate = calculateEngagementRate({ reactions, comments, reposts, impressions });
+    engagementRate = calculateEngagementRate(parsed.data);
   } catch {
     // Invalid numeric input should fail closed without attempting a DB write.
     return { success: false, engagementRate: null };
@@ -32,7 +53,7 @@ export async function saveMetrics({
   const existing = await db
     .select({ status: posts.status })
     .from(posts)
-    .where(and(eq(posts.id, postId), eq(posts.status, "published")))
+    .where(and(eq(posts.id, parsed.data.postId), eq(posts.status, "published")))
     .limit(1);
 
   if (!existing[0]) {
@@ -50,7 +71,7 @@ export async function saveMetrics({
       engagementRate,
       metricsPulledAt: new Date(),
     })
-    .where(and(eq(posts.id, postId), eq(posts.status, "published")));
+    .where(and(eq(posts.id, parsed.data.postId), eq(posts.status, "published")));
 
   return { success: true, engagementRate };
 }

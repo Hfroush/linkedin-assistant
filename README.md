@@ -51,6 +51,13 @@ For fast local prototyping, you can use:
 npm run db:push
 ```
 
+If you already have an existing database and only need the draft version history
+table, apply:
+
+```bash
+psql "$DATABASE_URL" -f scripts/add-draft-versions.sql
+```
+
 ## Seed data
 
 Seed topic areas:

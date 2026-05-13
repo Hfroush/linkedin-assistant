@@ -28,6 +28,20 @@ function parseBasicAuth(header: string | null): { username: string; password: st
   }
 }
 
+function timingSafeEqual(a: string, b: string): boolean {
+  const encoder = new TextEncoder();
+  const aBytes = encoder.encode(a);
+  const bBytes = encoder.encode(b);
+  const maxLength = Math.max(aBytes.length, bBytes.length);
+  let diff = aBytes.length ^ bBytes.length;
+
+  for (let i = 0; i < maxLength; i += 1) {
+    diff |= (aBytes[i] ?? 0) ^ (bBytes[i] ?? 0);
+  }
+
+  return diff === 0;
+}
+
 export function middleware(request: NextRequest): NextResponse {
   const expectedUsername = process.env.APP_BASIC_AUTH_USERNAME;
   const expectedPassword = process.env.APP_BASIC_AUTH_PASSWORD;
@@ -44,8 +58,8 @@ export function middleware(request: NextRequest): NextResponse {
 
   if (
     !credentials ||
-    credentials.username !== expectedUsername ||
-    credentials.password !== expectedPassword
+    !timingSafeEqual(credentials.username, expectedUsername) ||
+    !timingSafeEqual(credentials.password, expectedPassword)
   ) {
     return unauthorized();
   }

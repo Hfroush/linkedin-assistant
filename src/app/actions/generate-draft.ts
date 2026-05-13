@@ -3,7 +3,7 @@
 import { anthropic } from "@/lib/anthropic";
 import { getVoiceProfile } from "@/lib/voice-profile";
 import { db } from "@/db/client";
-import { posts } from "@/db/schema";
+import { draftVersions, posts } from "@/db/schema";
 import { reviewDraft, recordApprovedDraft } from "@/lib/linguistic-guardrail";
 import { logger } from "@/lib/logger";
 
@@ -202,6 +202,13 @@ export async function generateDraft(
     draftText,
     status: "draft",
     createdAt: new Date(),
+  });
+
+  await db.insert(draftVersions).values({
+    id: crypto.randomUUID(),
+    postId,
+    draftText,
+    label: "Generated draft",
   });
 
   return { postId, draftText };
