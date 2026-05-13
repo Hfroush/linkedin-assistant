@@ -29,15 +29,17 @@ function parseBasicAuth(header: string | null): { username: string; password: st
 }
 
 export function middleware(request: NextRequest): NextResponse {
+  // Auth only activates when explicitly opted in.
+  // This prevents accidental activation from shell env vars leaking via bash profiles.
+  if (process.env.ENABLE_BASIC_AUTH !== "1") {
+    return NextResponse.next();
+  }
+
   const expectedUsername = process.env.APP_BASIC_AUTH_USERNAME;
   const expectedPassword = process.env.APP_BASIC_AUTH_PASSWORD;
 
   if (!expectedUsername || !expectedPassword) {
-    if (process.env.NODE_ENV === "production") {
-      return new NextResponse("App access is not configured", { status: 500 });
-    }
-
-    return NextResponse.next();
+    return new NextResponse("App access is not configured", { status: 500 });
   }
 
   const credentials = parseBasicAuth(request.headers.get("authorization"));

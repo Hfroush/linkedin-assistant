@@ -10,14 +10,30 @@ import { getTopicPerformanceMatrix } from "@/lib/topic-performance";
 
 export const dynamic = "force-dynamic";
 
+const EMPTY_STATS = {
+  bestHookType: null,
+  bestNarrativeStructure: null,
+  bestTopicId: null,
+  bestPostingHour: null,
+  overallAvgEngagementRate: null,
+  totalPostsWithMetrics: 0,
+};
+
+const EMPTY_LEARNING = {
+  correctionsCount: 0,
+  lastResynthAt: null,
+  hasAddendum: false,
+  displayName: "Unknown",
+};
+
 export default async function StatsPage() {
   const accountId = await getActiveAccountId();
   const [stats, publishedPosts, topicAreas, topicMatrix, learningStatus] = await Promise.all([
-    getTagDimensionStats(accountId),
-    getPublishedPostsWithMetrics(accountId),
-    getTopicAreas(),
-    getTopicPerformanceMatrix(),
-    getAccountLearningStatus(accountId),
+    getTagDimensionStats(accountId).catch(() => EMPTY_STATS),
+    getPublishedPostsWithMetrics(accountId).catch(() => [] as Awaited<ReturnType<typeof getPublishedPostsWithMetrics>>),
+    getTopicAreas().catch(() => [] as Awaited<ReturnType<typeof getTopicAreas>>),
+    getTopicPerformanceMatrix().catch(() => [] as Awaited<ReturnType<typeof getTopicPerformanceMatrix>>),
+    getAccountLearningStatus(accountId).catch(() => EMPTY_LEARNING),
   ]);
 
   // Build topicId → name lookup

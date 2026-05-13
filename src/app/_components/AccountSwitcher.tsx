@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { switchAccount } from "@/app/actions/switch-account";
-import { ACCOUNT_DISPLAY_NAMES, type AccountSlug } from "@/lib/account";
+import { ACCOUNT_DISPLAY_NAMES, type AccountSlug } from "@/lib/account-shared";
 
 const ACCOUNT_OPTIONS: { slug: AccountSlug; label: string }[] = [
   { slug: "personal", label: ACCOUNT_DISPLAY_NAMES.personal },

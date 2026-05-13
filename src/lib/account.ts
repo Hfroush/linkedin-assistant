@@ -1,27 +1,10 @@
 import { cookies } from "next/headers";
 
-export type AccountSlug = "personal" | "ucl" | "startup";
-
-export const ACCOUNT_SLUGS: AccountSlug[] = ["personal", "ucl", "startup"];
-
-// Canonical map: slug → DB account id (seeded as 1, 2, 3 in Plan 01)
-export const ACCOUNT_ID_MAP: Record<AccountSlug, number> = {
-  personal: 1,
-  ucl: 2,
-  startup: 3,
-};
-
-export const ACCOUNT_SLUG_MAP: Record<number, AccountSlug> = {
-  1: "personal",
-  2: "ucl",
-  3: "startup",
-};
-
-export const ACCOUNT_DISPLAY_NAMES: Record<AccountSlug, string> = {
-  personal: "Houtan Personal",
-  ucl: "UCL EdTech Labs",
-  startup: "Startup Labs",
-};
+// Re-export shared constants so existing server-side imports don't break
+export type { AccountSlug } from "./account-shared";
+export { ACCOUNT_SLUGS, ACCOUNT_ID_MAP, ACCOUNT_SLUG_MAP, ACCOUNT_DISPLAY_NAMES } from "./account-shared";
+import { ACCOUNT_SLUGS as _SLUGS, ACCOUNT_ID_MAP as _ID_MAP } from "./account-shared";
+import type { AccountSlug as _AccountSlug } from "./account-shared";
 
 /**
  * Reads the x-active-account cookie from the request headers.
@@ -33,15 +16,14 @@ export const ACCOUNT_DISPLAY_NAMES: Record<AccountSlug, string> = {
 export async function getActiveAccountId(): Promise<number> {
   const cookieStore = await cookies();
   const slug = cookieStore.get("x-active-account")?.value ?? "personal";
-  // Whitelist check — reject tampered cookie values
-  const validSlug = ACCOUNT_SLUGS.includes(slug as AccountSlug)
-    ? (slug as AccountSlug)
+  const validSlug = _SLUGS.includes(slug as _AccountSlug)
+    ? (slug as _AccountSlug)
     : "personal";
-  return ACCOUNT_ID_MAP[validSlug];
+  return _ID_MAP[validSlug];
 }
 
-export async function getActiveAccountSlug(): Promise<AccountSlug> {
+export async function getActiveAccountSlug(): Promise<_AccountSlug> {
   const cookieStore = await cookies();
   const slug = cookieStore.get("x-active-account")?.value ?? "personal";
-  return ACCOUNT_SLUGS.includes(slug as AccountSlug) ? (slug as AccountSlug) : "personal";
+  return _SLUGS.includes(slug as _AccountSlug) ? (slug as _AccountSlug) : "personal";
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AccountSwitcher from "./AccountSwitcher";
-import type { AccountSlug } from "@/lib/account";
+import type { AccountSlug } from "@/lib/account-shared";
 
 export default function NavBar({ activeSlug }: { activeSlug: AccountSlug }) {
   const pathname = usePathname();

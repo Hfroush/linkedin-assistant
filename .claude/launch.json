@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "linkedin-assistant",
-      "runtimeExecutable": "/Users/houtanfroushan/.nvm/versions/node/v24.15.0/bin/node",
-      "runtimeArgs": ["/Users/houtanfroushan/Documents/Linkedin Claude Project/node_modules/.bin/next", "dev"],
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "cd '/Users/houtanfroushan/Documents/Linkedin Claude Project' && node node_modules/.bin/next dev"],
       "port": 3000
     }
   ]

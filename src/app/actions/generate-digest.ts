@@ -1,7 +1,7 @@
 "use server";
 
 import { anthropic } from "@/lib/anthropic";
-import { getVoiceProfile } from "@/lib/voice-profile";
+import { getVoiceProfileForAccount } from "@/lib/voice-profile";
 import { getPublishedPostsWithMetrics, getAccountLearningStatus } from "@/db/queries";
 import { getActiveAccountId } from "@/lib/account";
 import { db } from "@/db/client";
@@ -68,7 +68,7 @@ export async function generateDigest(accountId?: number): Promise<string> {
         : `${learningStatus.correctionsCount} correction(s) captured — voice profile re-synthesis not yet triggered (threshold: 5).`;
 
   // Call Claude with cached voice profile (D-08: same pattern as generate-draft.ts)
-  const voiceProfileText = await getVoiceProfile();
+  const voiceProfileText = await getVoiceProfileForAccount(resolvedAccountId);
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
