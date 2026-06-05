@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 export type DraftSummary = {
   id: string;
@@ -24,6 +24,7 @@ export type DraftSummary = {
 interface HistorySidebarProps {
   drafts: DraftSummary[];
   onSelect: (draft: DraftSummary) => void;
+  onDelete?: (postId: string) => void;
 }
 
 function firstLine(text: string | null): string {
@@ -43,10 +44,23 @@ function relativeTime(date: Date): string {
   if (diffMin < 60) return `${diffMin}m ago`;
   if (diffHr < 24) return `${diffHr}h ago`;
   if (diffDay < 7) return `${diffDay}d ago`;
-  return date.toLocaleDateString();
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default function HistorySidebar({ drafts, onSelect }: HistorySidebarProps) {
+export default function HistorySidebar({ drafts, onSelect, onDelete }: HistorySidebarProps) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDelete(e: React.MouseEvent, postId: string) {
+    e.stopPropagation(); // don't trigger onSelect
+    if (!onDelete) return;
+    setDeletingId(postId);
+    try {
+      await onDelete(postId);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div>
       <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
@@ -60,9 +74,29 @@ export default function HistorySidebar({ drafts, onSelect }: HistorySidebarProps
             <li
               key={draft.id}
               onClick={() => onSelect(draft)}
-              className="cursor-pointer px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="group relative cursor-pointer px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
-              <p className="text-sm font-medium line-clamp-2 text-gray-800 dark:text-gray-200 leading-snug">
+              {/* Delete button — visible on hover */}
+              {onDelete && (
+                <button
+                  onClick={(e) => handleDelete(e, draft.id)}
+                  disabled={deletingId === draft.id}
+                  aria-label="Delete draft"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-30"
+                >
+                  {deletingId === draft.id ? (
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
+                </button>
+              )}
+              <p className="text-sm font-medium line-clamp-2 text-gray-800 dark:text-gray-200 leading-snug pr-6">
                 {firstLine(draft.draftText)}
               </p>
               <div className="flex items-center gap-2 mt-1">

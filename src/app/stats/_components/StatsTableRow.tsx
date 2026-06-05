@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { pullMetrics } from "@/app/actions/pull-metrics";
 import { saveLinkedInUrl } from "@/app/actions/save-linkedin-url";
-import { fmtRate, relativeTime } from "@/lib/format";
+import { fmtRate, fmtHour, relativeTime } from "@/lib/format";
 
 interface StatsTableRowProps {
   post: {
@@ -27,10 +27,9 @@ interface StatsTableRowProps {
   };
   topicName: string | undefined;
   postingHour: number | null;
-  fmtHour: (hour: number | null | undefined) => string;
 }
 
-export function StatsTableRow({ post, topicName, postingHour, fmtHour }: StatsTableRowProps) {
+export function StatsTableRow({ post, topicName, postingHour }: StatsTableRowProps) {
   const router = useRouter();
 
   const [linkedinUrl, setLinkedinUrl] = useState(post.linkedinPostUrl ?? "");

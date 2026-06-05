@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import DraftPanel from "./DraftPanel";
 import HistorySidebar from "./HistorySidebar";
 import TopicPromptCard from "./TopicPromptCard";
+import { deleteDraft } from "@/app/actions/delete-draft";
 import type { DraftSummary } from "./HistorySidebar";
 
 interface HomeClientProps {
@@ -14,8 +15,17 @@ interface HomeClientProps {
   accountId?: number;
 }
 
-export default function HomeClient({ drafts, topicAreas, topicName, topicDescription, accountId = 1 }: HomeClientProps) {
+export default function HomeClient({ drafts: initialDrafts, topicAreas, topicName, topicDescription, accountId = 1 }: HomeClientProps) {
   const [loadedDraft, setLoadedDraft] = useState<DraftSummary | null>(null);
+  const [drafts, setDrafts] = useState<DraftSummary[]>(initialDrafts);
+
+  async function handleDelete(postId: string) {
+    // Optimistic removal
+    setDrafts((prev) => prev.filter((d) => d.id !== postId));
+    // If the deleted draft is currently loaded, clear the panel
+    if (loadedDraft?.id === postId) setLoadedDraft(null);
+    await deleteDraft(postId);
+  }
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-6">
@@ -39,7 +49,7 @@ export default function HomeClient({ drafts, topicAreas, topicName, topicDescrip
           </Suspense>
         </section>
         <aside className="lg:border-l lg:pl-6">
-          <HistorySidebar drafts={drafts} onSelect={setLoadedDraft} />
+          <HistorySidebar drafts={drafts} onSelect={setLoadedDraft} onDelete={handleDelete} />
         </aside>
       </div>
     </div>

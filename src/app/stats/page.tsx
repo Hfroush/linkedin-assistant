@@ -157,7 +157,6 @@ export default async function StatsPage() {
                       post={post}
                       topicName={post.topicId ? topicMap[post.topicId] : undefined}
                       postingHour={postingHour}
-                      fmtHour={fmtHour}
                     />
                   );
                 })}

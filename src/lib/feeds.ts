@@ -30,6 +30,7 @@ export const FEEDS: Record<number, FeedConfig> = {
     urls: [
       googleNewsRss("education design impact learning outcomes"),
       googleNewsRss("edtech market validation learning effectiveness"),
+      "https://edsheet.whiteboardadvisors.com", // Whiteboard Advisors edtech market intelligence
       // TODO: add curated Substack/RSS URL for education design
     ],
   },
