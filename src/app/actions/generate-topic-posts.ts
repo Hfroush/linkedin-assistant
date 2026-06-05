@@ -37,5 +37,6 @@ export async function generateTopicPosts(
     engagementRate: null,
     linkedinPostUrl: null,
     metricsPulledAt: null,
+    finalText: null,
   }));
 }
