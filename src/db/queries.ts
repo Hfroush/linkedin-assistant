@@ -2,6 +2,7 @@ import { desc, gte, eq, gt, isNull, or, sql, and, isNotNull, lt } from "drizzle-
 import { db } from "@/db/client";
 import {
   posts,
+  draftVersions,
   topicAreas,
   trendingItems,
   weeklyDigests,
@@ -21,6 +22,7 @@ type DraftRow = {
   id: string;
   roughIdea: string | null;
   draftText: string | null;
+  finalText: string | null;
   createdAt: Date;
   hookType: string | null;
   narrativeStructure: string | null;
@@ -55,6 +57,7 @@ export async function getDrafts(accountId: number): Promise<DraftRow[]> {
       id: posts.id,
       roughIdea: posts.roughIdea,
       draftText: posts.draftText,
+      finalText: posts.finalText,
       createdAt: posts.createdAt,
       hookType: posts.hookType,
       narrativeStructure: posts.narrativeStructure,
@@ -73,6 +76,33 @@ export async function getDrafts(accountId: number): Promise<DraftRow[]> {
     .where(eq(posts.accountId, accountId))
     .orderBy(desc(posts.createdAt));
   return rows as DraftRow[];
+}
+
+export type DraftVersionRow = {
+  id: string;
+  postId: string;
+  draftText: string;
+  label: string;
+  createdAt: string;
+};
+
+export async function getDraftVersions(postId: string): Promise<DraftVersionRow[]> {
+  const rows = await db
+    .select({
+      id: draftVersions.id,
+      postId: draftVersions.postId,
+      draftText: draftVersions.draftText,
+      label: draftVersions.label,
+      createdAt: draftVersions.createdAt,
+    })
+    .from(draftVersions)
+    .where(eq(draftVersions.postId, postId))
+    .orderBy(desc(draftVersions.createdAt));
+
+  return rows.map((row) => ({
+    ...row,
+    createdAt: row.createdAt.toISOString(),
+  }));
 }
 
 /**

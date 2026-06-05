@@ -34,6 +34,14 @@ interface TagRowProps {
   };
 }
 
+function toDateTimeLocalValue(value?: Date | string | null): string {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
 function PillGroup<T extends string>({
   label,
   options,
@@ -79,7 +87,9 @@ export default function TagRow({ postId, topicAreas, initialTags }: TagRowProps)
     (initialTags?.narrativeStructure as NarrativeStructure) ?? ""
   );
   const [topicId, setTopicId] = useState(initialTags?.topicId?.toString() ?? "");
-  const [scheduledTime, setScheduledTime] = useState("");
+  const [scheduledTime, setScheduledTime] = useState(
+    toDateTimeLocalValue(initialTags?.scheduledTime)
+  );
   const [status, setStatus] = useState<"draft" | "published">(
     initialTags?.status ?? "draft"
   );

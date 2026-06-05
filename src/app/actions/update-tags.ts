@@ -1,56 +1,50 @@
 "use server";
 
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db/client";
 import { posts } from "@/db/schema";
 
-type HookType =
-  | "question"
-  | "stat"
-  | "story"
-  | "hot_take"
-  | "confession"
-  | "contrast"
-  | null;
+const tagUpdateSchema = z
+  .object({
+    hookType: z
+      .enum(["question", "stat", "story", "hot_take", "confession", "contrast"])
+      .nullable()
+      .optional(),
+    narrativeStructure: z
+      .enum(["hook_insight", "story_arc", "essay", "list"])
+      .nullable()
+      .optional(),
+    topicId: z.number().int().positive().nullable().optional(),
+    scheduledTime: z.date().nullable().optional(),
+    status: z.enum(["draft", "published"]).optional(),
+  })
+  .strict();
 
-type NarrativeStructure =
-  | "hook_insight"
-  | "story_arc"
-  | "essay"
-  | "list"
-  | null;
-
-interface TagUpdate {
-  hookType?: HookType;
-  narrativeStructure?: NarrativeStructure;
-  topicId?: number | null;
-  scheduledTime?: Date | null;
-  status?: "draft" | "published";
-}
+type TagUpdate = z.infer<typeof tagUpdateSchema>;
 
 export async function updateTags(
   postId: string,
   tags: TagUpdate
 ): Promise<void> {
-  if (postId.trim().length === 0) {
-    throw new Error("postId is required");
-  }
-  if (postId.length > 36) {
-    throw new Error("Invalid postId");
-  }
+  const parsedPostId = z.string().uuid().parse(postId);
+  const parsedTags = tagUpdateSchema.parse(tags);
 
   await db
     .update(posts)
     .set({
-      ...(tags.hookType !== undefined && { hookType: tags.hookType }),
-      ...(tags.narrativeStructure !== undefined && {
-        narrativeStructure: tags.narrativeStructure,
+      ...(parsedTags.hookType !== undefined && { hookType: parsedTags.hookType }),
+      ...(parsedTags.narrativeStructure !== undefined && {
+        narrativeStructure: parsedTags.narrativeStructure,
       }),
-      ...(tags.topicId !== undefined && { topicId: tags.topicId }),
-      ...(tags.scheduledTime !== undefined && {
-        scheduledTime: tags.scheduledTime,
+      ...(parsedTags.topicId !== undefined && { topicId: parsedTags.topicId }),
+      ...(parsedTags.scheduledTime !== undefined && {
+        scheduledTime: parsedTags.scheduledTime,
       }),
-      ...(tags.status !== undefined && { status: tags.status }),
+      ...(parsedTags.status !== undefined && {
+        status: parsedTags.status,
+        ...(parsedTags.status === "published" && { publishedAt: new Date() }),
+      }),
     })
-    .where(eq(posts.id, postId));
+    .where(eq(posts.id, parsedPostId));
 }

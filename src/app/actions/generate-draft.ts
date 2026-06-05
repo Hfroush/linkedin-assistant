@@ -4,7 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { anthropic } from "@/lib/anthropic";
 import { getVoiceProfileForAccount } from "@/lib/voice-profile";
 import { db } from "@/db/client";
-import { posts, accounts } from "@/db/schema";
+import { posts, accounts, draftVersions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { reviewDraft, recordApprovedDraft } from "@/lib/linguistic-guardrail";
 import { logger } from "@/lib/logger";
@@ -240,6 +240,13 @@ export async function generateDraft(
     status: "draft",
     accountId,           // account-scoped post (Phase 6)
     createdAt: new Date(),
+  });
+
+  await db.insert(draftVersions).values({
+    id: crypto.randomUUID(),
+    postId,
+    draftText,
+    label: "Generated draft",
   });
 
   return { postId, draftText };
