@@ -24,7 +24,7 @@ try {
   console.error("Could not read .env.local");
 }
 
-const ACTOR_ID = "electrifying_haircut/linkedin-post-scraper";
+const ACTOR_ID = "johnvc/linkedin-posts-api";
 const postUrl = process.argv[2];
 
 if (!postUrl) {
@@ -37,16 +37,10 @@ if (!process.env.APIFY_API_KEY) {
   process.exit(1);
 }
 
-if (!process.env.LINKEDIN_LI_AT) {
-  console.error("Missing LINKEDIN_LI_AT in .env.local");
-  process.exit(1);
-}
-
 const client = new ApifyClient({ token: process.env.APIFY_API_KEY });
 
 console.log("Running actor:", ACTOR_ID);
 console.log("Post URL:", postUrl);
-console.log("li_at present:", !!process.env.LINKEDIN_LI_AT);
 console.log("");
 
 try {
@@ -61,7 +55,7 @@ try {
   console.log("");
 
   const run = await client.actor(ACTOR_ID).call(
-    { postUrl: resolvedUrl, li_at: process.env.LINKEDIN_LI_AT, jsessionid: process.env.LINKEDIN_JSESSIONID },
+    { postUrls: [resolvedUrl] },
     { waitSecs: 60 }
   );
 

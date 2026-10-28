@@ -6,7 +6,7 @@ export const apifyClient = new ApifyClient({
   token: process.env.APIFY_API_KEY!,
 });
 
-const ACTOR_ID = "electrifying_haircut/linkedin-post-scraper";
+const ACTOR_ID = "johnvc/linkedin-posts-api";
 
 export interface ApifyLinkedInStats {
   total_reactions: number;
@@ -35,7 +35,7 @@ export async function pullLinkedInPostMetrics(
 
   const run = await apifyClient
     .actor(ACTOR_ID)
-    .call({ postUrl: cleanUrl, li_at: process.env.LINKEDIN_LI_AT, jsessionid: process.env.LINKEDIN_JSESSIONID }, { waitSecs: 55 });
+    .call({ postUrls: [cleanUrl] }, { waitSecs: 55 });
 
   if (run.status !== "SUCCEEDED") {
     return { ok: false, reason: "timeout" };
@@ -46,10 +46,17 @@ export async function pullLinkedInPostMetrics(
     .listItems();
 
   const item = items[0] as
-    | { stats?: ApifyLinkedInStats }
+    | { result_type?: string; numLikes?: number; numComments?: number; numShares?: number }
     | undefined;
 
-  if (!item?.stats) return { ok: false, reason: "no_data" };
+  if (!item || item.result_type !== "post") return { ok: false, reason: "no_data" };
 
-  return { ok: true, stats: item.stats };
+  return {
+    ok: true,
+    stats: {
+      total_reactions: item.numLikes ?? 0,
+      comments: item.numComments ?? 0,
+      reposts: item.numShares ?? 0,
+    },
+  };
 }

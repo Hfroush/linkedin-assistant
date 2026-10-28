@@ -55,7 +55,7 @@ function setupApifySuccess(stats = { total_reactions: 42, comments: 5, reposts: 
     defaultDatasetId: "dataset-123",
   });
   mockListItems.mockResolvedValueOnce({
-    items: [{ stats }],
+    items: [{ result_type: "post", numLikes: stats.total_reactions, numComments: stats.comments, numShares: stats.reposts }],
   });
 }
 
